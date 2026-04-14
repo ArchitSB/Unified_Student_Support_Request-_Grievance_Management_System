@@ -1,4 +1,14 @@
-function Navbar({ breadcrumbs = [], theme = 'light', onThemeToggle, onMenuClick }) {
+const getInitials = (name = '') =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() || '')
+    .join('') || 'US'
+
+function Navbar({ breadcrumbs = [], theme = 'light', user, onLogout, onThemeToggle, onMenuClick }) {
+  const userInitials = getInitials(user?.name)
+
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:px-6 dark:border-slate-700 dark:bg-slate-900/90">
       <div className="flex items-center justify-between gap-3">
@@ -43,12 +53,13 @@ function Navbar({ breadcrumbs = [], theme = 'light', onThemeToggle, onMenuClick 
 
           <button
             type="button"
+            onClick={onLogout}
             className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-200">
-              AS
+              {userInitials}
             </span>
-            Profile
+            {user?.name || 'Profile'}
           </button>
         </div>
       </div>

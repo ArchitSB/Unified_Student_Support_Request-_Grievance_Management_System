@@ -229,3 +229,12 @@ export const getAdminDashboardStats = async () => {
     urgentQueue,
   }
 }
+
+export const listAssignableAdmins = async () => {
+  const admins = await User.find({ role: 'ADMIN', isActive: true })
+    .select('name email role department')
+    .sort({ name: 1 })
+    .lean()
+
+  return admins
+}

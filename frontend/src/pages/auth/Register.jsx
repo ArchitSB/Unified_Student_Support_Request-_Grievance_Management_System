@@ -1,7 +1,54 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button, Input } from '../../components/ui'
+import { useAuth } from '../../context/AuthContext'
+import { authApi } from '../../lib/api'
 
 function Register() {
   const steps = ['Personal Info', 'University Details', 'Password Setup']
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    department: '',
+    universityId: '',
+    batch: '',
+    password: '',
+  })
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setError('')
+    setIsSubmitting(true)
+
+    try {
+      const response = await authApi.register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      })
+      const authPayload = response?.data
+
+      if (!authPayload?.token || !authPayload?.user) {
+        throw new Error('Invalid registration response from server')
+      }
+
+      login(authPayload)
+      navigate('/dashboard', { replace: true })
+    } catch (err) {
+      setError(err.message || 'Unable to register. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="grid min-h-screen grid-cols-1 bg-slate-50 dark:bg-slate-900 lg:grid-cols-2">
@@ -21,16 +68,71 @@ function Register() {
             ))}
           </div>
 
-          <form className="mt-6 grid gap-4 sm:grid-cols-2">
-            <Input label="Full Name" placeholder="Archit Singh" required className="sm:col-span-2" />
-            <Input label="Email" type="email" placeholder="student@university.edu" required />
-            <Input label="Department" placeholder="Computer Science" required />
-            <Input label="University ID" placeholder="U123456" required />
-            <Input label="Batch" placeholder="2023-2027" required />
-            <Input label="Password" type="password" placeholder="Create password" required />
-            <Button type="submit" className="sm:col-span-2">
-              Register
+          <form className="mt-6 grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit}>
+            <Input
+              label="Full Name"
+              name="name"
+              placeholder="Archit Singh"
+              required
+              className="sm:col-span-2"
+              value={formData.name}
+              onChange={handleChange}
+            />
+            <Input
+              label="Email"
+              name="email"
+              type="email"
+              placeholder="student@university.edu"
+              required
+              value={formData.email}
+              onChange={handleChange}
+            />
+            <Input
+              label="Department"
+              name="department"
+              placeholder="Computer Science"
+              required
+              value={formData.department}
+              onChange={handleChange}
+            />
+            <Input
+              label="University ID"
+              name="universityId"
+              placeholder="U123456"
+              required
+              value={formData.universityId}
+              onChange={handleChange}
+            />
+            <Input
+              label="Batch"
+              name="batch"
+              placeholder="2023-2027"
+              required
+              value={formData.batch}
+              onChange={handleChange}
+            />
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="Create password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+            />
+
+            {error ? <p className="sm:col-span-2 text-sm text-rose-600">{error}</p> : null}
+
+            <Button type="submit" className="sm:col-span-2" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating account...' : 'Register'}
             </Button>
+
+            <p className="sm:col-span-2 text-center text-sm text-slate-500 dark:text-slate-400">
+              Already have an account?{' '}
+              <Link to="/login" className="font-medium text-indigo-600 dark:text-indigo-300">
+                Login
+              </Link>
+            </p>
           </form>
         </div>
       </section>

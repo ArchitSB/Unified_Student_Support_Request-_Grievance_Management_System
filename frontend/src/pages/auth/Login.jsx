@@ -1,6 +1,43 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button, Input } from '../../components/ui'
+import { useAuth } from '../../context/AuthContext'
+import { authApi } from '../../lib/api'
 
 function Login() {
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setError('')
+    setIsSubmitting(true)
+
+    try {
+      const response = await authApi.login(formData)
+      const authPayload = response?.data
+
+      if (!authPayload?.token || !authPayload?.user) {
+        throw new Error('Invalid login response from server')
+      }
+
+      login(authPayload)
+      navigate(authPayload.user.role === 'ADMIN' ? '/admin/dashboard' : '/dashboard', { replace: true })
+    } catch (err) {
+      setError(err.message || 'Unable to login. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="grid min-h-screen grid-cols-1 bg-slate-50 dark:bg-slate-900 lg:grid-cols-2">
       <section className="flex items-center justify-center px-6 py-12">
@@ -11,16 +48,38 @@ function Login() {
             Track grievances, updates, and support messages in one place.
           </p>
 
-          <form className="mt-8 space-y-4">
-            <Input label="Email" type="email" placeholder="student@university.edu" required />
-            <Input label="Password" type="password" placeholder="••••••••" required />
-            <Button type="submit" className="w-full">
-              Login
+          <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+            <Input
+              label="Email"
+              name="email"
+              type="email"
+              placeholder="student@university.edu"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+
+            {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Logging in...' : 'Login'}
             </Button>
           </form>
 
           <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-            New student? <a href="/register" className="font-medium text-indigo-600 dark:text-indigo-300">Create account</a>
+            New student?{' '}
+            <Link to="/register" className="font-medium text-indigo-600 dark:text-indigo-300">
+              Create account
+            </Link>
           </p>
         </div>
       </section>

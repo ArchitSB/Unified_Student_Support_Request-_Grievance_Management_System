@@ -4,6 +4,7 @@ import {
   adminDashboardStatsHandler,
   adminListRequestsHandler,
   assignRequestHandler,
+  listAssignableAdminsHandler,
   updateRequestStatusHandler,
 } from '../controllers/request.controller.js'
 import { requireAuth, requireRole } from '../middelwares/auth.js'
@@ -23,5 +24,6 @@ router.get('/requests', validateRequest(adminListRequestsSchema), asyncHandler(a
 router.patch('/requests/:id/status', validateRequest(updateStatusSchema), asyncHandler(updateRequestStatusHandler))
 router.patch('/requests/:id/assign', validateRequest(assignRequestSchema), asyncHandler(assignRequestHandler))
 router.get('/dashboard/stats', asyncHandler(adminDashboardStatsHandler))
+router.get('/users', asyncHandler(listAssignableAdminsHandler))
 
 export default router

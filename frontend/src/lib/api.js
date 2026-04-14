@@ -2,10 +2,35 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const getAuthToken = () => localStorage.getItem('auth_token')
 
+export class ApiClientError extends Error {
+  constructor(message, status = 0, data = null) {
+    super(message)
+    this.name = 'ApiClientError'
+    this.status = status
+    this.data = data
+  }
+}
+
+const buildQueryString = (query = {}) => {
+  const searchParams = new URLSearchParams()
+
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return
+    }
+
+    searchParams.set(key, String(value))
+  })
+
+  const result = searchParams.toString()
+  return result ? `?${result}` : ''
+}
+
 export const apiRequest = async (path, options = {}) => {
   const token = getAuthToken()
+  const queryString = buildQueryString(options.query)
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${API_BASE_URL}${path}${queryString}`, {
     method: options.method || 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -19,8 +44,31 @@ export const apiRequest = async (path, options = {}) => {
 
   if (!response.ok) {
     const message = data?.message || 'Request failed'
-    throw new Error(message)
+    throw new ApiClientError(message, response.status, data)
   }
 
   return data
+}
+
+export const authApi = {
+  register: (payload) => apiRequest('/auth/register', { method: 'POST', body: payload }),
+  login: (payload) => apiRequest('/auth/login', { method: 'POST', body: payload }),
+  getMe: () => apiRequest('/auth/me'),
+}
+
+export const studentApi = {
+  createRequest: (payload) => apiRequest('/requests', { method: 'POST', body: payload }),
+  listMyRequests: (query = {}) => apiRequest('/requests/my', { query }),
+  getRequestById: (id) => apiRequest(`/requests/${id}`),
+  updateRequest: (id, payload) => apiRequest(`/requests/${id}`, { method: 'PATCH', body: payload }),
+  getRequestUpdates: (id) => apiRequest(`/requests/${id}/updates`),
+}
+
+export const adminApi = {
+  listRequests: (query = {}) => apiRequest('/admin/requests', { query }),
+  updateStatus: (id, status) => apiRequest(`/admin/requests/${id}/status`, { method: 'PATCH', body: { status } }),
+  assignRequest: (id, assignedTo) =>
+    apiRequest(`/admin/requests/${id}/assign`, { method: 'PATCH', body: { assignedTo } }),
+  getDashboardStats: () => apiRequest('/admin/dashboard/stats'),
+  listAdmins: () => apiRequest('/admin/users'),
 }

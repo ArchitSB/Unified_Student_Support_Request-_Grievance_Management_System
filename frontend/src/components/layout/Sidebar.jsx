@@ -14,9 +14,11 @@ const adminLinks = [
   { to: '/admin/requests', label: 'Admin Requests' },
 ]
 
-function Sidebar({ isOpen, onClose }) {
+function Sidebar({ isOpen, onClose, userRole, onLogout }) {
   const linkClassName = ({ isActive }) =>
     `${navItemBaseClass} ${isActive ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-200' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'}`
+
+  const visibleLinks = userRole === 'ADMIN' ? adminLinks : studentLinks
 
   return (
     <>
@@ -37,32 +39,22 @@ function Sidebar({ isOpen, onClose }) {
           <h2 className="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">Control Panel</h2>
         </div>
 
-        <nav className="space-y-6">
-          <div>
-            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Student</p>
-            <div className="space-y-1">
-              {studentLinks.map((link) => (
-                <NavLink key={link.to} to={link.to} className={linkClassName} onClick={onClose}>
-                  {link.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Admin</p>
-            <div className="space-y-1">
-              {adminLinks.map((link) => (
-                <NavLink key={link.to} to={link.to} className={linkClassName} onClick={onClose}>
-                  {link.label}
-                </NavLink>
-              ))}
-            </div>
+        <nav>
+          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            {userRole === 'ADMIN' ? 'Admin' : 'Student'}
+          </p>
+          <div className="space-y-1">
+            {visibleLinks.map((link) => (
+              <NavLink key={link.to} to={link.to} className={linkClassName} onClick={onClose}>
+                {link.label}
+              </NavLink>
+            ))}
           </div>
         </nav>
 
         <button
           type="button"
+          onClick={onLogout}
           className="mt-auto flex h-11 items-center justify-center rounded-md border border-slate-300 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           Logout

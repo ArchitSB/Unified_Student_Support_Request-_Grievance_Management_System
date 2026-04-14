@@ -4,6 +4,7 @@ import {
   getAdminDashboardStats,
   getRequestForStudent,
   getRequestUpdates,
+  listAssignableAdmins,
   listAdminRequests,
   listMyRequests,
   updateOwnRequest,
@@ -91,6 +92,15 @@ export const adminDashboardStatsHandler = async (_req, res) => {
 
   return sendSuccess(res, {
     message: 'Fetched admin dashboard stats',
+    data,
+  })
+}
+
+export const listAssignableAdminsHandler = async (_req, res) => {
+  const data = await listAssignableAdmins()
+
+  return sendSuccess(res, {
+    message: 'Fetched assignable admins',
     data,
   })
 }
