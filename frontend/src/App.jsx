@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './components/layout/MainLayout'
 import { useAuth } from './context/AuthContext'
+import AdminLogin from './pages/auth/AdminLogin'
+import AdminRegister from './pages/auth/AdminRegister'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -9,6 +11,8 @@ import AdminRequests from './pages/admin/AdminRequests'
 import CreateRequest from './pages/student/CreateRequest'
 import Dashboard from './pages/student/Dashboard'
 import MyRequests from './pages/student/MyRequests'
+
+const normalizeRole = (role) => String(role || '').trim().toUpperCase()
 
 function App() {
   const { user, isAuthenticated, isAuthLoading } = useAuth()
@@ -21,12 +25,17 @@ function App() {
     )
   }
 
-  const defaultPath = isAuthenticated && user?.role === 'ADMIN' ? '/admin/dashboard' : '/dashboard'
+  const defaultPath = isAuthenticated && normalizeRole(user?.role) === 'ADMIN' ? '/admin/dashboard' : '/dashboard'
 
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to={defaultPath} replace /> : <Login />} />
       <Route path="/register" element={isAuthenticated ? <Navigate to={defaultPath} replace /> : <Register />} />
+      <Route path="/admin/login" element={isAuthenticated ? <Navigate to={defaultPath} replace /> : <AdminLogin />} />
+      <Route
+        path="/admin/register"
+        element={isAuthenticated ? <Navigate to={defaultPath} replace /> : <AdminRegister />}
+      />
 
       <Route
         element={

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed:admin": "node scripts/seedAdmin.js"
+    "seed:admin": "node scripts/seedAdmin.js",
+    "seed:db": "node scripts/seedDatabase.js",
+    "migrate:profiles": "node scripts/backfillProfiles.js"
   },
   "keywords": [],
   "author": "",

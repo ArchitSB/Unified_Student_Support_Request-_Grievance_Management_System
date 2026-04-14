@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Sidebar from './Sidebar'
 import Navbar from './Navbar'
+
+const normalizeRole = (role) => String(role || '').trim().toUpperCase()
 
 const getInitialTheme = () => {
   if (typeof window === 'undefined') return 'light'
@@ -17,7 +19,9 @@ function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [theme, setTheme] = useState(getInitialTheme)
   const location = useLocation()
+  const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const userRole = normalizeRole(user?.role)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -38,7 +42,7 @@ function MainLayout() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userRole={user?.role} onLogout={logout} />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userRole={userRole} onLogout={logout} />
 
       <div className="flex min-h-screen flex-1 flex-col">
         <Navbar
@@ -46,6 +50,8 @@ function MainLayout() {
           theme={theme}
           user={user}
           onLogout={logout}
+          onNotificationsClick={() => navigate(userRole === 'ADMIN' ? '/admin/requests' : '/my-requests')}
+          onProfileClick={() => navigate(userRole === 'ADMIN' ? '/admin/dashboard' : '/dashboard')}
           onThemeToggle={handleThemeToggle}
           onMenuClick={() => setIsSidebarOpen((prev) => !prev)}
         />

@@ -6,7 +6,16 @@ const getInitials = (name = '') =>
     .map((segment) => segment[0]?.toUpperCase() || '')
     .join('') || 'US'
 
-function Navbar({ breadcrumbs = [], theme = 'light', user, onLogout, onThemeToggle, onMenuClick }) {
+function Navbar({
+  breadcrumbs = [],
+  theme = 'light',
+  user,
+  onLogout,
+  onNotificationsClick,
+  onProfileClick,
+  onThemeToggle,
+  onMenuClick,
+}) {
   const userInitials = getInitials(user?.name)
 
   return (
@@ -37,7 +46,9 @@ function Navbar({ breadcrumbs = [], theme = 'light', user, onLogout, onThemeTogg
 
           <button
             type="button"
+            onClick={onNotificationsClick}
             className="relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            aria-label="Open relevant requests"
           >
             🔔
             <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-rose-500" />
@@ -53,13 +64,21 @@ function Navbar({ breadcrumbs = [], theme = 'light', user, onLogout, onThemeTogg
 
           <button
             type="button"
-            onClick={onLogout}
+            onClick={onProfileClick}
             className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-200">
               {userInitials}
             </span>
             {user?.name || 'Profile'}
+          </button>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Logout
           </button>
         </div>
       </div>

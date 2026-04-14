@@ -14,6 +14,7 @@ export const env = {
   MONGODB_URI: process.env.MONGODB_URI || '',
   JWT_SECRET: process.env.JWT_SECRET || '',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  ADMIN_SIGNUP_KEY: process.env.ADMIN_SIGNUP_KEY || '',
   CORS_ORIGINS: parseOrigins(process.env.CORS_ORIGINS || 'http://localhost:5173'),
 }
 

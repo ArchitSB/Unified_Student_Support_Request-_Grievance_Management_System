@@ -34,6 +34,9 @@ function Register() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        department: formData.department,
+        universityId: formData.universityId,
+        batch: formData.batch,
       })
       const authPayload = response?.data
 
@@ -131,6 +134,13 @@ function Register() {
               Already have an account?{' '}
               <Link to="/login" className="font-medium text-indigo-600 dark:text-indigo-300">
                 Login
+              </Link>
+            </p>
+
+            <p className="sm:col-span-2 text-center text-sm text-slate-500 dark:text-slate-400">
+              Admin onboarding?{' '}
+              <Link to="/admin/register" className="font-medium text-indigo-600 dark:text-indigo-300">
+                Register as admin
               </Link>
             </p>
           </form>

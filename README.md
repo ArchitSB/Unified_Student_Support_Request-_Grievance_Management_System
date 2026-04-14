@@ -41,7 +41,9 @@ The project is now connected end-to-end across auth, student request workflows, 
 - Health endpoint
 - Auth module:
 	- Register student
+	- Register admin (with admin signup key)
 	- Login
+	- Admin login
 	- Current user profile
 - Student request module:
 	- Create request
@@ -129,7 +131,10 @@ Rate-limited under /api/v1/auth (30 requests per 15 minutes per client).
 {
 	"name": "Student Name",
 	"email": "student@university.edu",
-	"password": "StrongPass123"
+	"password": "StrongPass123",
+	"department": "Computer Science",
+	"universityId": "U2023001",
+	"batch": "2023-2027"
 }
 ```
 
@@ -150,7 +155,39 @@ Rate-limited under /api/v1/auth (30 requests per 15 minutes per client).
 
 - Returns auth token and user object.
 
-3. GET /api/v1/auth/me
+3. POST /api/v1/auth/admin/register
+- Access: Public (guarded with signup key)
+- Body:
+
+```json
+{
+	"name": "Admin User",
+	"email": "admin@university.edu",
+	"password": "StrongPass123",
+	"department": "Support Operations",
+	"adminSignupKey": "<ADMIN_SIGNUP_KEY>"
+}
+```
+
+- Notes:
+	- Creates ADMIN role users.
+	- Requires backend ADMIN_SIGNUP_KEY configuration.
+
+4. POST /api/v1/auth/admin/login
+- Access: Public
+- Body:
+
+```json
+{
+	"email": "admin@university.edu",
+	"password": "StrongPass123"
+}
+```
+
+- Notes:
+	- Fails if account is not ADMIN.
+
+5. GET /api/v1/auth/me
 - Access: Authenticated (STUDENT or ADMIN)
 - Returns current user profile from token.
 
@@ -290,12 +327,34 @@ All endpoints below require:
 - meta (mixed)
 - createdAt
 
+### StudentProfile
+
+- userId (User, unique)
+- universityId (unique, nullable)
+- department
+- program
+- batch
+- semester
+- phone
+- isVerified
+
+### AdminProfile
+
+- userId (User, unique)
+- employeeId (unique, nullable)
+- department
+- designation
+- permissions[]
+- isSuperAdmin
+
 ## 5. Frontend Routes
 
 Public:
 
 - /login
 - /register
+- /admin/login
+- /admin/register
 
 Student-only:
 
@@ -318,6 +377,8 @@ authApi:
 
 - register(payload)
 - login(payload)
+- adminRegister(payload)
+- adminLogin(payload)
 - getMe()
 
 studentApi:
@@ -348,6 +409,7 @@ adminApi:
 - NODE_ENV (default: development)
 - PORT (default: 5000)
 - JWT_EXPIRES_IN (default: 7d)
+- ADMIN_SIGNUP_KEY (required for admin register endpoint)
 - CORS_ORIGINS (comma-separated, default: http://localhost:5173)
 - ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME, ADMIN_DEPARTMENT (for seeding)
 
@@ -372,6 +434,20 @@ cd backend
 npm run seed:admin
 ```
 
+Seed full database (admin + students + profiles + requests + timelines):
+
+```bash
+cd backend
+npm run seed:db
+```
+
+Backfill profile schemas for pre-existing users:
+
+```bash
+cd backend
+npm run migrate:profiles
+```
+
 Frontend:
 
 ```bash
@@ -390,7 +466,7 @@ Stack: Backend (Express + MongoDB + JWT + Zod), Frontend (React + Vite + React R
 Roles: STUDENT, ADMIN
 
 Frontend routes:
-- Public: /login, /register
+- Public: /login, /register, /admin/login, /admin/register
 - Student: /dashboard, /create-request, /my-requests
 - Admin: /admin/dashboard, /admin/requests
 
@@ -400,6 +476,8 @@ Global health: GET /health
 Auth endpoints:
 - POST /auth/register
 - POST /auth/login
+- POST /auth/admin/register
+- POST /auth/admin/login
 - GET /auth/me
 
 Student endpoints (require STUDENT):

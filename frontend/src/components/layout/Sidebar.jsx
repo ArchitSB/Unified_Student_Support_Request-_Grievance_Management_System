@@ -14,11 +14,14 @@ const adminLinks = [
   { to: '/admin/requests', label: 'Admin Requests' },
 ]
 
+const normalizeRole = (role) => String(role || '').trim().toUpperCase()
+
 function Sidebar({ isOpen, onClose, userRole, onLogout }) {
   const linkClassName = ({ isActive }) =>
     `${navItemBaseClass} ${isActive ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-200' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'}`
 
-  const visibleLinks = userRole === 'ADMIN' ? adminLinks : studentLinks
+  const normalizedRole = normalizeRole(userRole)
+  const visibleLinks = normalizedRole === 'ADMIN' ? adminLinks : studentLinks
 
   return (
     <>
@@ -41,7 +44,7 @@ function Sidebar({ isOpen, onClose, userRole, onLogout }) {
 
         <nav>
           <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            {userRole === 'ADMIN' ? 'Admin' : 'Student'}
+            {normalizedRole === 'ADMIN' ? 'Admin' : 'Student'}
           </p>
           <div className="space-y-1">
             {visibleLinks.map((link) => (
