@@ -20,7 +20,7 @@ const adminProfileSchema = new mongoose.Schema(
     employeeId: {
       type: String,
       trim: true,
-      default: null,
+      default: undefined,
       unique: true,
       sparse: true,
     },

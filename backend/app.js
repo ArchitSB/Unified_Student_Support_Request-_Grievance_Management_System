@@ -10,10 +10,20 @@ import apiRoutes from './routes/index.js'
 
 const app = express()
 
+const allowedOrigins = new Set(env.CORS_ORIGINS)
+const isLocalhostOrigin = (origin) => /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
+
 app.use(helmet())
 app.use(
   cors({
-    origin: env.CORS_ORIGINS,
+    origin: (origin, callback) => {
+      // Allow server-to-server requests without Origin and local frontend dev ports.
+      if (!origin || allowedOrigins.has(origin) || isLocalhostOrigin(origin)) {
+        return callback(null, true)
+      }
+
+      return callback(new Error('Not allowed by CORS'))
+    },
     credentials: true,
   }),
 )

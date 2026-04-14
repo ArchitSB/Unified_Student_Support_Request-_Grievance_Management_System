@@ -96,8 +96,11 @@ export const registerAdmin = async ({ name, email, password, department, adminSi
     department,
   })
 
+  const generatedEmployeeId = `ADM-${Date.now().toString(36).toUpperCase()}-${String(createdUser._id).slice(-6).toUpperCase()}`
+
   await AdminProfile.create({
     userId: createdUser._id,
+    employeeId: generatedEmployeeId,
     department,
   })
 

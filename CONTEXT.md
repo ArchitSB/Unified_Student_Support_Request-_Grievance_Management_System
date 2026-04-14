@@ -1,40 +1,49 @@
-# Unified Student Support System - Condensed AI Context
+# Unified Student Support System - Current Context Snapshot
 
-## 1) Project Summary
-- Full-stack grievance/request platform.
-- Roles: STUDENT and ADMIN.
+## 1) Project Status
+- Full-stack grievance/request platform is integrated end-to-end.
 - Backend: Express + MongoDB + JWT + Zod.
 - Frontend: React (Vite) + React Router.
-- Current state: frontend and backend are integrated end-to-end.
+- Current architecture includes hierarchical workflow approvals and department-scoped operations.
 
-## 2) Frontend Routes
+## 2) Active Roles
+- STUDENT
+- TEACHER
+- HOD
+- DEPARTMENT_ADMIN
+- SUPER_ADMIN
+- ADMIN (legacy compatibility role)
+
+## 3) Frontend Routing
 Public:
 - /login
 - /register
 - /admin/login
 - /admin/register
 
-Student-only:
+Student:
 - /dashboard
 - /create-request
 - /my-requests
 
-Admin-only:
+Operations:
 - /admin/dashboard
 - /admin/requests
+- /admin/workflows
+- /admin/departments
 
-Auth/route behavior:
-- Private route guard enabled.
-- Role-based redirection enabled.
-- Session rehydration via GET /api/v1/auth/me.
+Route behavior:
+- Protected layout shell
+- Role-aware redirects
+- Session bootstrap via GET /api/v1/auth/me
 
-## 3) Backend Basics
+## 4) Backend Basics
 - API base: /api/v1
-- Health: GET /health
-- Protected routes require: Authorization: Bearer <JWT_TOKEN>
-- Auth rate limit: 30 requests / 15 minutes on /api/v1/auth/*
+- Health endpoint: GET /health
+- Auth header: Authorization: Bearer <JWT_TOKEN>
+- Auth rate limit: 30 requests per 15 minutes on /api/v1/auth/*
 
-## 4) Response Contracts
+## 5) Response Contract
 Success:
 ```json
 {"success": true, "message": "...", "data": {}, "meta": null}
@@ -45,7 +54,7 @@ Error:
 {"success": false, "message": "...", "errors": []}
 ```
 
-## 5) API Endpoints
+## 6) Endpoint Inventory
 Auth:
 - POST /api/v1/auth/register
 - POST /api/v1/auth/login
@@ -53,69 +62,74 @@ Auth:
 - POST /api/v1/auth/admin/login
 - GET /api/v1/auth/me
 
-Student endpoints (require STUDENT):
+Student flow:
 - POST /api/v1/requests
 - GET /api/v1/requests/my
 - GET /api/v1/requests/:id
 - PATCH /api/v1/requests/:id
 - GET /api/v1/requests/:id/updates
 
-Admin endpoints (require ADMIN):
+Workflow action:
+- POST /api/v1/requests/:id/action
+	- action: APPROVE | REJECT | FORWARD
+	- allowed roles: TEACHER, HOD, DEPARTMENT_ADMIN, SUPER_ADMIN, ADMIN
+
+Operations:
 - GET /api/v1/admin/requests
 - PATCH /api/v1/admin/requests/:id/status
 - PATCH /api/v1/admin/requests/:id/assign
 - GET /api/v1/admin/dashboard/stats
 - GET /api/v1/admin/users
+- GET /api/v1/admin/departments
+- POST /api/v1/admin/departments
+- PATCH /api/v1/admin/departments/:id
+- DELETE /api/v1/admin/departments/:id
+- GET /api/v1/admin/workflows
+- POST /api/v1/admin/workflows
+- PATCH /api/v1/admin/workflows/:id
+- DELETE /api/v1/admin/workflows/:id
 
-Rules:
-- Student can update own request only when status is PENDING.
-- Register endpoint creates STUDENT users only.
-- Admin register endpoint creates ADMIN users and requires adminSignupKey.
-
-## 6) Domain Enums
-Request type:
-- ACADEMIC, FINANCE, HOSTEL, INFRASTRUCTURE, OTHER
-
-Priority:
-- LOW, MEDIUM, HIGH, URGENT
-
-Status:
-- PENDING, IN_PROGRESS, RESOLVED, REJECTED
-
-Timeline action:
-- CREATED, UPDATED, ASSIGNED, STATUS_CHANGED
-
-## 7) Core Models
+## 7) Current Data Shape Highlights
 User:
-- name, email(unique), passwordHash, role, department, isActive
+- role enum includes STUDENT, TEACHER, HOD, DEPARTMENT_ADMIN, SUPER_ADMIN, ADMIN
+- departmentId relation
 
 Request:
-- studentId, title, description, type, priority, status, assignedTo, attachments[]
+- workflowId, departmentId, currentStep, taggedTeacherId
+- approvalHistory[] (actorId, role, action, remark, timestamp)
 
-RequestUpdate:
-- requestId, actorId, action, meta
+Other key models:
+- RequestUpdate
+- Department
+- WorkflowConfig
+- StudentProfile
+- AdminProfile
 
-## 8) Frontend API Client Map
-authApi:
-- register(payload), login(payload), adminRegister(payload), adminLogin(payload), getMe()
+## 8) Frontend UX Stage
+- Admin request operations page includes:
+	- details side drawer
+	- approval timeline view
+	- assign modal
+	- workflow action modal
+- Toast notifications are active.
+- Optimistic updates are active on operations/config pages.
 
-studentApi:
-- createRequest(payload), listMyRequests(query), getRequestById(id), updateRequest(id, payload), getRequestUpdates(id)
-
-adminApi:
-- listRequests(query), updateStatus(id, status), assignRequest(id, assignedTo), getDashboardStats(), listAdmins()
-
-## 9) Environment Variables
+## 9) Environment Notes
 Backend required:
 - MONGODB_URI
 - JWT_SECRET
 
 Backend optional:
-- NODE_ENV, PORT, JWT_EXPIRES_IN, CORS_ORIGINS, ADMIN_SIGNUP_KEY
-- ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME, ADMIN_DEPARTMENT (seed script)
+- NODE_ENV, PORT, JWT_EXPIRES_IN
+- CORS_ORIGINS
+- ADMIN_SIGNUP_KEY
 
 Frontend optional:
-- VITE_API_BASE_URL (default http://localhost:5000/api/v1)
+- VITE_API_BASE_URL
+
+Recent fix notes:
+- CORS now accepts configured origins and localhost/127.0.0.1 dev ports.
+- Admin signup now generates employeeId to avoid duplicate-null unique failures.
 
 ## 10) Quick Run
 Backend:
@@ -123,33 +137,29 @@ Backend:
 cd backend && npm install && npm run dev
 ```
 
-Backfill missing role profiles for existing users:
-```bash
-cd backend && npm run migrate:profiles
-```
-
-Seed admin:
-```bash
-cd backend && npm run seed:admin
-```
-
 Frontend:
 ```bash
 cd frontend && npm install && npm run dev
 ```
 
-## 11) Copy Block For New AI Chat
+Seed/migrate helpers:
+```bash
+cd backend && npm run seed:admin
+cd backend && npm run seed:db
+cd backend && npm run migrate:profiles
+```
+
+## 11) Compact Prompt Block
 ```text
 Project: Unified Student Support, Request and Grievance Management System.
-Stack: Express+MongoDB+JWT+Zod (backend), React+Vite+Router (frontend).
-Roles: STUDENT, ADMIN.
-Routes: /login, /register, /admin/login, /admin/register, /dashboard, /create-request, /my-requests, /admin/dashboard, /admin/requests.
+Stack: Backend (Express+MongoDB+JWT+Zod), Frontend (React+Vite+Router).
+Roles: STUDENT, TEACHER, HOD, DEPARTMENT_ADMIN, SUPER_ADMIN, legacy ADMIN.
+Frontend routes: /login, /register, /admin/login, /admin/register, /dashboard, /create-request, /my-requests, /admin/dashboard, /admin/requests, /admin/workflows, /admin/departments.
 API base: /api/v1. Health: GET /health.
-Auth: POST /auth/register, POST /auth/login, POST /auth/admin/register, POST /auth/admin/login, GET /auth/me.
+Auth APIs: POST /auth/register, POST /auth/login, POST /auth/admin/register, POST /auth/admin/login, GET /auth/me.
 Student APIs: POST /requests, GET /requests/my, GET /requests/:id, PATCH /requests/:id, GET /requests/:id/updates.
-Admin APIs: GET /admin/requests, PATCH /admin/requests/:id/status, PATCH /admin/requests/:id/assign, GET /admin/dashboard/stats, GET /admin/users.
-Enums: type(ACADEMIC|FINANCE|HOSTEL|INFRASTRUCTURE|OTHER), priority(LOW|MEDIUM|HIGH|URGENT), status(PENDING|IN_PROGRESS|RESOLVED|REJECTED).
+Workflow API: POST /requests/:id/action with APPROVE|REJECT|FORWARD.
+Operations APIs: /admin/requests, /admin/dashboard/stats, /admin/users, /admin/departments, /admin/workflows (GET/POST/PATCH/DELETE as implemented).
+Request enums: type(ACADEMIC|FINANCE|HOSTEL|INFRASTRUCTURE|OTHER), priority(LOW|MEDIUM|HIGH|URGENT), status(PENDING|IN_PROGRESS|RESOLVED|REJECTED).
 Contracts: success { success:true,message,data,meta }, error { success:false,message,errors }.
-Rule: student can edit own request only when status=PENDING.
-Rule: admin signup requires ADMIN_SIGNUP_KEY and adminSignupKey payload field.
 ```
