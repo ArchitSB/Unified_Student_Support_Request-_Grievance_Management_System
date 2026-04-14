@@ -70,7 +70,7 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Student Dashboard Page</h1>
+      <h1 className="text-2xl font-semibold">Student Dashboard</h1>
 
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 

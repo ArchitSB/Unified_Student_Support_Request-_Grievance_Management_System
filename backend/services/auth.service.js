@@ -12,6 +12,7 @@ const userProjection = {
   name: 1,
   email: 1,
   role: 1,
+  departmentId: 1,
   department: 1,
   isActive: 1,
   createdAt: 1,
@@ -27,6 +28,7 @@ const makeAuthResponse = (user) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      departmentId: user.departmentId,
       department: user.department,
       isActive: user.isActive,
       createdAt: user.createdAt,
@@ -124,7 +126,7 @@ export const loginUser = async ({ email, password }) => {
 export const loginAdmin = async ({ email, password }) => {
   const authResponse = await loginUser({ email, password })
 
-  if (authResponse.user.role !== 'ADMIN') {
+  if (!['ADMIN', 'DEPARTMENT_ADMIN', 'HOD', 'SUPER_ADMIN'].includes(authResponse.user.role)) {
     throw new ApiError(403, 'This account is not authorized for admin login')
   }
 

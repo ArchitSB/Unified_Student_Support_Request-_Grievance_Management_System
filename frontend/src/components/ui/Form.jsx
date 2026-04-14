@@ -2,7 +2,7 @@ function Form({ title, subtitle, children, onSubmit, className = '' }) {
   return (
     <form
       onSubmit={onSubmit}
-      className={`rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 ${className}`}
+      className={`rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/80 ${className}`}
     >
       {(title || subtitle) && (
         <header className="mb-5">

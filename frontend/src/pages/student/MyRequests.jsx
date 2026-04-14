@@ -82,7 +82,7 @@ function MyRequests() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">My Requests Page</h1>
+        <h1 className="text-2xl font-semibold">My Requests</h1>
         <Button onClick={() => navigate('/create-request')}>Create New Request</Button>
       </div>
 

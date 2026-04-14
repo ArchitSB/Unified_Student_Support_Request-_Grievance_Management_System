@@ -456,14 +456,153 @@ npm install
 npm run dev
 ```
 
-## 9. AI Context Pack (Copy for New Chats)
+## 9. Advanced Backend APIs (Hierarchy, Department, Workflow)
+
+This section documents the newly added hierarchy and workflow-management APIs.
+
+### 9.1 Role Matrix
+
+- STUDENT:
+	- Create and manage own requests (existing behavior)
+	- Cannot manage departments/workflows
+- TEACHER:
+	- Can act on requests assigned at TEACHER workflow step via action API
+- HOD:
+	- Can view department-scoped admin data
+	- Can act on HOD workflow step via action API
+- DEPARTMENT_ADMIN:
+	- Department-level request oversight
+	- Can manage workflow configs in own department
+	- Can act on DEPARTMENT_ADMIN workflow step
+- SUPER_ADMIN:
+	- Full access
+	- Can manage departments and all workflow configs
+- Legacy ADMIN:
+	- Kept for backward compatibility
+	- Treated as department admin for route checks where applicable
+
+### 9.2 Approval Action API
+
+1. POST /api/v1/requests/:id/action
+- Access:
+	- TEACHER | HOD | DEPARTMENT_ADMIN | SUPER_ADMIN | ADMIN
+- Body:
+
+```json
+{
+	"action": "APPROVE",
+	"remark": "Verified and moving to next approver"
+}
+```
+
+- Allowed action values:
+	- APPROVE
+	- REJECT
+	- FORWARD
+
+- Behavior:
+	- APPROVE: advances request to next workflow step, resolves request if final step
+	- REJECT: marks request as REJECTED
+	- FORWARD: forces transition to next step (errors on final step)
+	- Each action appends an approvalHistory entry on the request
+
+### 9.3 Department Management APIs
+
+1. GET /api/v1/admin/departments
+- Access:
+	- HOD | DEPARTMENT_ADMIN | SUPER_ADMIN | ADMIN
+- Query:
+	- search (optional)
+
+2. POST /api/v1/admin/departments
+- Access:
+	- SUPER_ADMIN only
+- Body:
+
+```json
+{
+	"name": "Computer Science",
+	"code": "CSE",
+	"hodId": "<HOD_USER_ID>",
+	"teachers": ["<TEACHER_USER_ID>"]
+}
+```
+
+3. PATCH /api/v1/admin/departments/:id
+- Access:
+	- SUPER_ADMIN only
+- Body (partial allowed):
+
+```json
+{
+	"name": "Computer Science and Engineering",
+	"code": "CSE",
+	"hodId": "<HOD_USER_ID>",
+	"teachers": ["<TEACHER_USER_ID_1>", "<TEACHER_USER_ID_2>"]
+}
+```
+
+4. DELETE /api/v1/admin/departments/:id
+- Access:
+	- SUPER_ADMIN only
+- Constraint:
+	- Delete is blocked if users/requests/workflows reference the department
+
+### 9.4 Workflow Config APIs
+
+1. GET /api/v1/admin/workflows
+- Access:
+	- HOD | DEPARTMENT_ADMIN | SUPER_ADMIN | ADMIN
+- Query:
+	- requestType (optional)
+	- departmentId (optional)
+	- isActive (optional)
+
+2. POST /api/v1/admin/workflows
+- Access:
+	- DEPARTMENT_ADMIN | SUPER_ADMIN | ADMIN
+- Body:
+
+```json
+{
+	"requestType": "ACADEMIC",
+	"departmentId": "<DEPARTMENT_ID>",
+	"steps": [
+		{ "role": "TEACHER", "order": 1 },
+		{ "role": "HOD", "order": 2 },
+		{ "role": "DEPARTMENT_ADMIN", "order": 3 }
+	],
+	"isActive": true
+}
+```
+
+3. PATCH /api/v1/admin/workflows/:id
+- Access:
+	- DEPARTMENT_ADMIN | SUPER_ADMIN | ADMIN
+- Body (partial allowed):
+
+```json
+{
+	"steps": [
+		{ "role": "TEACHER", "order": 1 },
+		{ "role": "HOD", "order": 2 }
+	],
+	"isActive": true
+}
+```
+
+4. DELETE /api/v1/admin/workflows/:id
+- Access:
+	- DEPARTMENT_ADMIN | SUPER_ADMIN | ADMIN
+
+## 10. AI Context Pack (Copy for New Chats)
 
 Use this block as prompt context for any new AI model:
 
 ```text
 Project: Unified Student Support, Request and Grievance Management System
 Stack: Backend (Express + MongoDB + JWT + Zod), Frontend (React + Vite + React Router)
-Roles: STUDENT, ADMIN
+Roles: STUDENT, TEACHER, HOD, DEPARTMENT_ADMIN, SUPER_ADMIN (legacy ADMIN supported)
 
 Frontend routes:
 - Public: /login, /register, /admin/login, /admin/register
@@ -486,13 +625,22 @@ Student endpoints (require STUDENT):
 - GET /requests/:id
 - PATCH /requests/:id
 - GET /requests/:id/updates
+- POST /requests/:id/action (TEACHER/HOD/DEPARTMENT_ADMIN/SUPER_ADMIN/ADMIN)
 
-Admin endpoints (require ADMIN):
+Admin endpoints (hierarchy-scoped):
 - GET /admin/requests
 - PATCH /admin/requests/:id/status
 - PATCH /admin/requests/:id/assign
 - GET /admin/dashboard/stats
 - GET /admin/users
+- GET /admin/departments
+- POST /admin/departments
+- PATCH /admin/departments/:id
+- DELETE /admin/departments/:id
+- GET /admin/workflows
+- POST /admin/workflows
+- PATCH /admin/workflows/:id
+- DELETE /admin/workflows/:id
 
 Request enums:
 - type: ACADEMIC, FINANCE, HOSTEL, INFRASTRUCTURE, OTHER

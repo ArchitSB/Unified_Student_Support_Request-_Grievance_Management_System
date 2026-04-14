@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button, Input } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { authApi } from '../../lib/api'
-
-const normalizeRole = (role) => String(role || '').trim().toUpperCase()
+import { getDefaultPathForRole } from '../../lib/roles'
 
 function Login() {
   const navigate = useNavigate()
@@ -32,7 +31,7 @@ function Login() {
       }
 
       login(authPayload)
-      navigate(normalizeRole(authPayload.user.role) === 'ADMIN' ? '/admin/dashboard' : '/dashboard', { replace: true })
+      navigate(getDefaultPathForRole(authPayload.user.role), { replace: true })
     } catch (err) {
       setError(err.message || 'Unable to login. Please try again.')
     } finally {
@@ -93,7 +92,7 @@ function Login() {
         </div>
       </section>
 
-      <section className="relative hidden items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-500 to-purple-500 lg:flex">
+      <section className="relative hidden items-center justify-center overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 lg:flex">
         <div className="absolute -top-20 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl" />
         <div className="relative max-w-md rounded-2xl border border-white/30 bg-white/10 p-8 text-white backdrop-blur">

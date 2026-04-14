@@ -10,9 +10,9 @@ function Table({ columns = [], data = [], isLoading = false }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+    <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
       <table className="min-w-full divide-y divide-slate-200 text-left dark:divide-slate-700">
-        <thead className="bg-slate-50 dark:bg-slate-800/70">
+        <thead className="bg-slate-50/90 dark:bg-slate-800/70">
           <tr>
             {columns.map((column) => (
               <th

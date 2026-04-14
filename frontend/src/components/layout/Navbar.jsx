@@ -10,6 +10,7 @@ function Navbar({
   breadcrumbs = [],
   theme = 'light',
   user,
+  roleLabel = 'Workspace',
   onLogout,
   onNotificationsClick,
   onProfileClick,
@@ -19,12 +20,12 @@ function Navbar({
   const userInitials = getInitials(user?.name)
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:px-6 dark:border-slate-700 dark:bg-slate-900/90">
+    <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur md:px-6 dark:border-slate-700 dark:bg-slate-900/90">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-100 md:hidden dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 md:hidden dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
             onClick={onMenuClick}
             aria-label="Toggle menu"
           >
@@ -35,19 +36,19 @@ function Navbar({
             <h1 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               Unified Student Support System
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Campus Request & Grievance Workflow</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{roleLabel}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          <div className="hidden h-10 items-center rounded-md border border-slate-300 px-3 text-sm text-slate-400 md:flex dark:border-slate-600">
-            Search requests... <span className="ml-2 text-xs">⌘K</span>
+          <div className="hidden h-10 items-center rounded-xl border border-slate-300/80 bg-slate-50 px-3 text-sm text-slate-500 md:flex dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            Requests and workflow updates
           </div>
 
           <button
             type="button"
             onClick={onNotificationsClick}
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
             aria-label="Open relevant requests"
           >
             🔔
@@ -57,7 +58,7 @@ function Navbar({
           <button
             type="button"
             onClick={onThemeToggle}
-            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             {theme === 'dark' ? '☀ Light' : '🌙 Dark'}
           </button>
@@ -65,7 +66,7 @@ function Navbar({
           <button
             type="button"
             onClick={onProfileClick}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-200">
               {userInitials}
@@ -76,7 +77,7 @@ function Navbar({
           <button
             type="button"
             onClick={onLogout}
-            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Logout
           </button>

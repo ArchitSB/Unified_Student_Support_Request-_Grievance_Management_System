@@ -42,7 +42,7 @@ function CreateRequest() {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <h1 className="text-2xl font-semibold">Create Request Page</h1>
+      <h1 className="text-2xl font-semibold">Create Request</h1>
 
       <Form
         title="Submit a new grievance"

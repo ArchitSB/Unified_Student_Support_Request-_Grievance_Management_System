@@ -25,6 +25,8 @@ const backfillProfiles = async () => {
   let studentProfilesCreated = 0
   let adminProfilesCreated = 0
 
+  const hierarchyAdminRoles = new Set(['ADMIN', 'HOD', 'DEPARTMENT_ADMIN', 'SUPER_ADMIN'])
+
   for (const user of users) {
     if (user.role === 'STUDENT') {
       const existing = await StudentProfile.findOne({ userId: user._id }).lean()
@@ -39,7 +41,7 @@ const backfillProfiles = async () => {
       continue
     }
 
-    if (user.role === 'ADMIN') {
+    if (hierarchyAdminRoles.has(user.role)) {
       const existing = await AdminProfile.findOne({ userId: user._id }).lean()
       if (!existing) {
         await AdminProfile.create({

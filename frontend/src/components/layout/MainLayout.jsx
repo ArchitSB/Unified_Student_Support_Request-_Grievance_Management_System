@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { getDefaultPathForRole, isAdminRole, normalizeRole, ROLE } from '../../lib/roles'
 import Sidebar from './Sidebar'
 import Navbar from './Navbar'
-
-const normalizeRole = (role) => String(role || '').trim().toUpperCase()
 
 const getInitialTheme = () => {
   if (typeof window === 'undefined') return 'light'
@@ -50,10 +49,11 @@ function MainLayout() {
           theme={theme}
           user={user}
           onLogout={logout}
-          onNotificationsClick={() => navigate(userRole === 'ADMIN' ? '/admin/requests' : '/my-requests')}
-          onProfileClick={() => navigate(userRole === 'ADMIN' ? '/admin/dashboard' : '/dashboard')}
+          onNotificationsClick={() => navigate(isAdminRole(userRole) ? '/admin/requests' : '/my-requests')}
+          onProfileClick={() => navigate(getDefaultPathForRole(userRole))}
           onThemeToggle={handleThemeToggle}
           onMenuClick={() => setIsSidebarOpen((prev) => !prev)}
+          roleLabel={userRole === ROLE.STUDENT ? 'Student Workspace' : 'Operations Workspace'}
         />
         <main className="flex-1 p-4 md:p-6">
           <Outlet />

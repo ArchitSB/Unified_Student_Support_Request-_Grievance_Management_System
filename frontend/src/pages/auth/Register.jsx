@@ -147,9 +147,9 @@ function Register() {
         </div>
       </section>
 
-      <section className="relative hidden items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 to-indigo-700 lg:flex">
+      <section className="relative hidden items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 to-cyan-700 lg:flex">
         <div className="absolute left-10 top-10 h-56 w-56 rounded-full bg-indigo-400/30 blur-3xl" />
-        <div className="absolute bottom-10 right-10 h-64 w-64 rounded-full bg-purple-400/20 blur-3xl" />
+        <div className="absolute bottom-10 right-10 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl" />
         <div className="relative max-w-md rounded-2xl border border-white/30 bg-white/10 p-8 text-white backdrop-blur">
           <h2 className="text-2xl font-semibold">From submission to resolution — all in one dashboard.</h2>
           <ul className="mt-4 space-y-2 text-sm text-indigo-100">

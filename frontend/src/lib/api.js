@@ -71,6 +71,15 @@ export const adminApi = {
   updateStatus: (id, status) => apiRequest(`/admin/requests/${id}/status`, { method: 'PATCH', body: { status } }),
   assignRequest: (id, assignedTo) =>
     apiRequest(`/admin/requests/${id}/assign`, { method: 'PATCH', body: { assignedTo } }),
+  requestAction: (id, payload) => apiRequest(`/requests/${id}/action`, { method: 'POST', body: payload }),
   getDashboardStats: () => apiRequest('/admin/dashboard/stats'),
   listAdmins: () => apiRequest('/admin/users'),
+  listDepartments: (query = {}) => apiRequest('/admin/departments', { query }),
+  createDepartment: (payload) => apiRequest('/admin/departments', { method: 'POST', body: payload }),
+  updateDepartment: (id, payload) => apiRequest(`/admin/departments/${id}`, { method: 'PATCH', body: payload }),
+  deleteDepartment: (id) => apiRequest(`/admin/departments/${id}`, { method: 'DELETE' }),
+  listWorkflows: (query = {}) => apiRequest('/admin/workflows', { query }),
+  createWorkflow: (payload) => apiRequest('/admin/workflows', { method: 'POST', body: payload }),
+  updateWorkflow: (id, payload) => apiRequest(`/admin/workflows/${id}`, { method: 'PATCH', body: payload }),
+  deleteWorkflow: (id) => apiRequest(`/admin/workflows/${id}`, { method: 'DELETE' }),
 }

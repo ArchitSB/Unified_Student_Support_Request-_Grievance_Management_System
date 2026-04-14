@@ -12,6 +12,8 @@ export const createRequestSchema = z.object({
     description: z.string().trim().min(10).max(5000),
     type: requestTypeEnum.default('OTHER'),
     priority: requestPriorityEnum.default('MEDIUM'),
+    departmentId: z.string().regex(objectIdRegex, 'Invalid department id').optional(),
+    taggedTeacherId: z.string().regex(objectIdRegex, 'Invalid tagged teacher id').optional(),
     attachments: z.array(z.string().url()).optional().default([]),
   }),
   params: z.object({}).optional(),
@@ -78,6 +80,17 @@ export const updateStatusSchema = z.object({
 export const assignRequestSchema = z.object({
   body: z.object({
     assignedTo: z.string().regex(objectIdRegex, 'Invalid assignee id'),
+  }),
+  params: z.object({
+    id: z.string().regex(objectIdRegex, 'Invalid request id'),
+  }),
+  query: z.object({}).optional(),
+})
+
+export const requestActionSchema = z.object({
+  body: z.object({
+    action: z.enum(['APPROVE', 'REJECT', 'FORWARD']),
+    remark: z.string().trim().max(2000).optional().default(''),
   }),
   params: z.object({
     id: z.string().regex(objectIdRegex, 'Invalid request id'),

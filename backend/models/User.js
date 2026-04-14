@@ -21,8 +21,15 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['STUDENT', 'ADMIN'],
+      // Keep legacy ADMIN for backward compatibility with existing data and endpoints.
+      enum: ['STUDENT', 'TEACHER', 'HOD', 'DEPARTMENT_ADMIN', 'SUPER_ADMIN', 'ADMIN'],
       default: 'STUDENT',
+      index: true,
+    },
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Department',
+      default: null,
       index: true,
     },
     department: {

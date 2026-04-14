@@ -123,8 +123,8 @@ function AdminRegister() {
         </div>
       </section>
 
-      <section className="relative hidden items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-800 lg:flex">
-        <div className="absolute left-10 top-10 h-56 w-56 rounded-full bg-indigo-400/20 blur-3xl" />
+      <section className="relative hidden items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-800 lg:flex">
+        <div className="absolute left-10 top-10 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl" />
         <div className="absolute bottom-10 right-10 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
         <div className="relative max-w-md rounded-2xl border border-white/20 bg-white/10 p-8 text-white backdrop-blur">
           <h2 className="text-2xl font-semibold">Secure admin access for governance and operations.</h2>

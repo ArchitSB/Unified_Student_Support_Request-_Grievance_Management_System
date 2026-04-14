@@ -68,7 +68,7 @@ function AdminDashboard() {
         id: item._id,
         student: item.studentId?.name || 'Unknown',
         request: item.title,
-        department: item.type,
+        department: item.departmentId?.name || 'General',
         status: item.status,
       })),
     [dashboardData.urgentQueue],
@@ -92,7 +92,7 @@ function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Admin Dashboard Page</h1>
+      <h1 className="text-2xl font-semibold">Operations Dashboard</h1>
 
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 

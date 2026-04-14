@@ -1,7 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-
-const normalizeRole = (role) => String(role || '').trim().toUpperCase()
+import { getDefaultPathForRole, normalizeRole } from '../lib/roles'
 
 function ProtectedRoute({ allowedRoles = [], children }) {
   const { isAuthenticated, user } = useAuth()
@@ -13,7 +12,7 @@ function ProtectedRoute({ allowedRoles = [], children }) {
   }
 
   if (allowedNormalizedRoles.length > 0 && !allowedNormalizedRoles.includes(normalizedRole)) {
-    return <Navigate to={normalizedRole === 'ADMIN' ? '/admin/dashboard' : '/dashboard'} replace />
+    return <Navigate to={getDefaultPathForRole(normalizedRole)} replace />
   }
 
   return children

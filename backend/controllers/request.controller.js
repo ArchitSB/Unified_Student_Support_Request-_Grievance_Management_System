@@ -7,6 +7,7 @@ import {
   listAssignableAdmins,
   listAdminRequests,
   listMyRequests,
+  performRequestAction,
   updateOwnRequest,
   updateRequestStatus,
 } from '../services/request.service.js'
@@ -60,7 +61,7 @@ export const getRequestUpdatesHandler = async (req, res) => {
 }
 
 export const adminListRequestsHandler = async (req, res) => {
-  const data = await listAdminRequests(req.validated.query)
+  const data = await listAdminRequests(req.validated.query, req.user)
 
   return sendSuccess(res, {
     message: 'Fetched admin request list',
@@ -70,7 +71,7 @@ export const adminListRequestsHandler = async (req, res) => {
 }
 
 export const updateRequestStatusHandler = async (req, res) => {
-  const data = await updateRequestStatus(req.validated.params.id, req.user._id, req.validated.body.status)
+  const data = await updateRequestStatus(req.validated.params.id, req.user, req.validated.body.status)
 
   return sendSuccess(res, {
     message: 'Request status updated',
@@ -79,7 +80,7 @@ export const updateRequestStatusHandler = async (req, res) => {
 }
 
 export const assignRequestHandler = async (req, res) => {
-  const data = await assignRequest(req.validated.params.id, req.user._id, req.validated.body.assignedTo)
+  const data = await assignRequest(req.validated.params.id, req.user, req.validated.body.assignedTo)
 
   return sendSuccess(res, {
     message: 'Request assigned successfully',
@@ -87,8 +88,8 @@ export const assignRequestHandler = async (req, res) => {
   })
 }
 
-export const adminDashboardStatsHandler = async (_req, res) => {
-  const data = await getAdminDashboardStats()
+export const adminDashboardStatsHandler = async (req, res) => {
+  const data = await getAdminDashboardStats(req.user)
 
   return sendSuccess(res, {
     message: 'Fetched admin dashboard stats',
@@ -96,11 +97,25 @@ export const adminDashboardStatsHandler = async (_req, res) => {
   })
 }
 
-export const listAssignableAdminsHandler = async (_req, res) => {
-  const data = await listAssignableAdmins()
+export const listAssignableAdminsHandler = async (req, res) => {
+  const data = await listAssignableAdmins(req.user)
 
   return sendSuccess(res, {
     message: 'Fetched assignable admins',
+    data,
+  })
+}
+
+export const requestActionHandler = async (req, res) => {
+  const data = await performRequestAction({
+    requestId: req.validated.params.id,
+    actor: req.user,
+    action: req.validated.body.action,
+    remark: req.validated.body.remark,
+  })
+
+  return sendSuccess(res, {
+    message: 'Request action processed successfully',
     data,
   })
 }
