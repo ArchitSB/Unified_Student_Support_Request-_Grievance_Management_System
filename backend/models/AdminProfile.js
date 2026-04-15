@@ -8,6 +8,8 @@ const adminPermissions = [
   'USER_MANAGE',
 ]
 
+export const ADMIN_DESIGNATIONS = ['Professor', 'Teacher', 'Class Coordinator', 'Other']
+
 const adminProfileSchema = new mongoose.Schema(
   {
     userId: {
@@ -32,7 +34,8 @@ const adminProfileSchema = new mongoose.Schema(
     designation: {
       type: String,
       trim: true,
-      default: 'Administrator',
+      enum: ADMIN_DESIGNATIONS,
+      default: 'Other',
     },
     permissions: {
       type: [String],
@@ -42,6 +45,7 @@ const adminProfileSchema = new mongoose.Schema(
     isSuperAdmin: {
       type: Boolean,
       default: false,
+      select: false,
     },
   },
   {

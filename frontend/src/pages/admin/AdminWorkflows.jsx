@@ -118,7 +118,6 @@ function AdminWorkflows() {
     }
 
     setError('')
-    setSuccessMessage('')
 
     const payload = {
       requestType: form.requestType,

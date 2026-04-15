@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './components/layout/MainLayout'
+import SuperAdminLayout from './components/layout/SuperAdminLayout'
 import { useAuth } from './context/AuthContext'
 import { ADMIN_ROLES, getDefaultPathForRole, ROLE } from './lib/roles'
 import AdminDepartments from './pages/admin/AdminDepartments'
@@ -14,6 +15,14 @@ import AdminRequests from './pages/admin/AdminRequests'
 import CreateRequest from './pages/student/CreateRequest'
 import Dashboard from './pages/student/Dashboard'
 import MyRequests from './pages/student/MyRequests'
+import SuperAdminAnalytics from './pages/super-admin/SuperAdminAnalytics'
+import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard'
+import SuperAdminDepartments from './pages/super-admin/SuperAdminDepartments'
+import SuperAdminEscalations from './pages/super-admin/SuperAdminEscalations'
+import SuperAdminReports from './pages/super-admin/SuperAdminReports'
+import SuperAdminRequests from './pages/super-admin/SuperAdminRequests'
+import SuperAdminUsers from './pages/super-admin/SuperAdminUsers'
+import SuperAdminWorkflows from './pages/super-admin/SuperAdminWorkflows'
 
 function App() {
   const { user, isAuthenticated, isAuthLoading } = useAuth()
@@ -102,6 +111,23 @@ function App() {
             </ProtectedRoute>
           }
         />
+      </Route>
+
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={[ROLE.SUPER_ADMIN]}>
+            <SuperAdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+        <Route path="/super-admin/analytics" element={<SuperAdminAnalytics />} />
+        <Route path="/super-admin/requests" element={<SuperAdminRequests />} />
+        <Route path="/super-admin/workflows" element={<SuperAdminWorkflows />} />
+        <Route path="/super-admin/departments" element={<SuperAdminDepartments />} />
+        <Route path="/super-admin/users" element={<SuperAdminUsers />} />
+        <Route path="/super-admin/escalations" element={<SuperAdminEscalations />} />
+        <Route path="/super-admin/reports" element={<SuperAdminReports />} />
       </Route>
 
       <Route path="*" element={<Navigate to={isAuthenticated ? defaultPath : '/login'} replace />} />

@@ -6,6 +6,7 @@ import { Department } from '../models/Department.js'
 import { Request } from '../models/Request.js'
 import { RequestUpdate } from '../models/RequestUpdate.js'
 import { StudentProfile } from '../models/StudentProfile.js'
+import { SuperAdminProfile } from '../models/SuperAdminProfile.js'
 import { User } from '../models/User.js'
 import { WorkflowConfig } from '../models/WorkflowConfig.js'
 
@@ -100,6 +101,21 @@ const upsertAdminProfile = async (userId, profile) => {
         designation: profile.designation,
         permissions: profile.permissions,
         isSuperAdmin: profile.isSuperAdmin,
+      },
+    },
+    { upsert: true },
+  )
+}
+
+const upsertSuperAdminProfile = async (userId, profile = {}) => {
+  await SuperAdminProfile.updateOne(
+    { userId },
+    {
+      $set: {
+        employeeId: profile.employeeId,
+        scope: 'GLOBAL',
+        accessLevel: profile.accessLevel || 'ROOT',
+        managedModules: profile.managedModules || ['USERS', 'WORKFLOWS', 'DEPARTMENTS', 'ESCALATIONS', 'REPORTS'],
       },
     },
     { upsert: true },
@@ -230,15 +246,15 @@ const seedDatabase = async () => {
   await upsertAdminProfile(admin._id, {
     employeeId: process.env.ADMIN_EMPLOYEE_ID || 'EMP-ADMIN-001',
     department: admin.department || 'Computer Science',
-    designation: 'Lead Administrator',
+    designation: 'Other',
     permissions: ['REQUEST_REVIEW', 'REQUEST_ASSIGN', 'REQUEST_STATUS_UPDATE', 'DASHBOARD_VIEW', 'USER_MANAGE'],
-    isSuperAdmin: true,
+    isSuperAdmin: false,
   })
 
   await upsertAdminProfile(departmentAdmin._id, {
     employeeId: process.env.DEPARTMENT_ADMIN_EMPLOYEE_ID || 'EMP-DEP-001',
     department: departmentAdmin.department || 'Computer Science',
-    designation: 'Department Administrator',
+    designation: 'Class Coordinator',
     permissions: ['REQUEST_REVIEW', 'REQUEST_ASSIGN', 'REQUEST_STATUS_UPDATE', 'DASHBOARD_VIEW'],
     isSuperAdmin: false,
   })
@@ -246,17 +262,16 @@ const seedDatabase = async () => {
   await upsertAdminProfile(hod._id, {
     employeeId: process.env.HOD_EMPLOYEE_ID || 'EMP-HOD-001',
     department: hod.department || 'Computer Science',
-    designation: 'Head of Department',
+    designation: 'Professor',
     permissions: ['REQUEST_REVIEW', 'REQUEST_STATUS_UPDATE', 'DASHBOARD_VIEW'],
     isSuperAdmin: false,
   })
 
-  await upsertAdminProfile(superAdmin._id, {
+  await AdminProfile.deleteOne({ userId: superAdmin._id })
+  await upsertSuperAdminProfile(superAdmin._id, {
     employeeId: process.env.SUPER_ADMIN_EMPLOYEE_ID || 'EMP-SUPER-001',
-    department: 'Global',
-    designation: 'Super Administrator',
-    permissions: ['REQUEST_REVIEW', 'REQUEST_ASSIGN', 'REQUEST_STATUS_UPDATE', 'DASHBOARD_VIEW', 'USER_MANAGE'],
-    isSuperAdmin: true,
+    accessLevel: 'ROOT',
+    managedModules: ['USERS', 'WORKFLOWS', 'DEPARTMENTS', 'ESCALATIONS', 'REPORTS'],
   })
 
   const studentOne = await upsertUser({

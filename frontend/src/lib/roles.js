@@ -25,5 +25,9 @@ export const getDefaultPathForRole = (role) => {
     return '/dashboard'
   }
 
+  if (normalized === ROLE.SUPER_ADMIN) {
+    return '/super-admin/dashboard'
+  }
+
   return isAdminRole(normalized) ? '/admin/dashboard' : '/dashboard'
 }

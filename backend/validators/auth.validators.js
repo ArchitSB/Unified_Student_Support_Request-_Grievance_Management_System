@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 const emailSchema = z.string().trim().email().transform((value) => value.toLowerCase())
+const adminDesignationEnum = z.enum(['Professor', 'Teacher', 'Class Coordinator', 'Other'])
 
 export const registerSchema = z.object({
   body: z.object({
@@ -32,6 +33,7 @@ export const adminRegisterSchema = z.object({
     email: emailSchema,
     password: z.string().min(8).max(64),
     department: z.string().trim().min(2).max(120),
+    designation: adminDesignationEnum,
     adminSignupKey: z.string().min(1),
   }),
   params: z.object({}).optional(),

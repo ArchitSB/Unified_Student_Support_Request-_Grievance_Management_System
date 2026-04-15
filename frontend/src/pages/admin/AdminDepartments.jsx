@@ -99,7 +99,6 @@ function AdminDepartments() {
     }
 
     setError('')
-    setSuccessMessage('')
 
     const payload = {
       name: form.name.trim(),

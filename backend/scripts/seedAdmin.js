@@ -20,7 +20,8 @@ const seedAdmin = async () => {
       {
         $set: {
           department,
-          designation: 'Administrator',
+          designation: 'Other',
+          isSuperAdmin: false,
         },
       },
       { upsert: true },
@@ -44,8 +45,8 @@ const seedAdmin = async () => {
   await AdminProfile.create({
     userId: admin._id,
     department,
-    designation: 'Administrator',
-    isSuperAdmin: true,
+    designation: 'Other',
+    isSuperAdmin: false,
   })
 
   console.log(`✅ Admin created: ${email}`)

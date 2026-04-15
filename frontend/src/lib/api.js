@@ -83,3 +83,19 @@ export const adminApi = {
   updateWorkflow: (id, payload) => apiRequest(`/admin/workflows/${id}`, { method: 'PATCH', body: payload }),
   deleteWorkflow: (id) => apiRequest(`/admin/workflows/${id}`, { method: 'DELETE' }),
 }
+
+export const superAdminApi = {
+  getDashboard: () => apiRequest('/admin/super/dashboard'),
+  getAnalytics: () => apiRequest('/admin/super/analytics'),
+  listUsers: (query = {}) => apiRequest('/admin/super/users', { query }),
+  updateUserRole: (id, role) => apiRequest(`/admin/super/users/${id}/role`, { method: 'PATCH', body: { role } }),
+  updateUserActive: (id, isActive) =>
+    apiRequest(`/admin/super/users/${id}/active`, { method: 'PATCH', body: { isActive } }),
+  listEscalations: (query = {}) => apiRequest('/admin/super/escalations', { query }),
+  manualEscalate: (id, remark = '') =>
+    apiRequest(`/admin/super/escalations/${id}/manual`, { method: 'POST', body: { remark } }),
+  overrideRequest: (id, payload) => apiRequest(`/admin/super/requests/${id}/override`, { method: 'PATCH', body: payload }),
+  reassignRequest: (id, assignedTo) =>
+    apiRequest(`/admin/super/requests/${id}/reassign`, { method: 'PATCH', body: { assignedTo } }),
+  getReports: () => apiRequest('/admin/super/reports'),
+}

@@ -17,6 +17,18 @@ import {
   updateDepartmentHandler,
   updateWorkflowHandler,
 } from '../controllers/adminConfig.controller.js'
+import {
+  listEscalationsHandler,
+  listSystemUsersHandler,
+  manualEscalateHandler,
+  overrideRequestHandler,
+  reassignRequestHandler,
+  superAdminAnalyticsHandler,
+  superAdminDashboardHandler,
+  superAdminReportsHandler,
+  updateUserActiveHandler,
+  updateUserRoleHandler,
+} from '../controllers/superAdmin.controller.js'
 import { requireAuth, requireRole } from '../middelwares/auth.js'
 import { validateRequest } from '../middelwares/validateRequest.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -35,6 +47,15 @@ import {
   assignRequestSchema,
   updateStatusSchema,
 } from '../validators/request.validators.js'
+import {
+  listEscalationsSchema,
+  listSystemUsersSchema,
+  manualEscalateSchema,
+  overrideRequestSchema,
+  reassignRequestSchema,
+  updateUserActiveSchema,
+  updateUserRoleSchema,
+} from '../validators/superAdmin.validators.js'
 
 const router = Router()
 
@@ -88,5 +109,51 @@ router.delete(
   validateRequest(workflowIdParamsSchema),
   asyncHandler(deleteWorkflowHandler),
 )
+
+router.get('/super/dashboard', asyncHandler(requireRole('SUPER_ADMIN')), asyncHandler(superAdminDashboardHandler))
+router.get('/super/analytics', asyncHandler(requireRole('SUPER_ADMIN')), asyncHandler(superAdminAnalyticsHandler))
+router.get(
+  '/super/users',
+  asyncHandler(requireRole('SUPER_ADMIN')),
+  validateRequest(listSystemUsersSchema),
+  asyncHandler(listSystemUsersHandler),
+)
+router.patch(
+  '/super/users/:id/role',
+  asyncHandler(requireRole('SUPER_ADMIN')),
+  validateRequest(updateUserRoleSchema),
+  asyncHandler(updateUserRoleHandler),
+)
+router.patch(
+  '/super/users/:id/active',
+  asyncHandler(requireRole('SUPER_ADMIN')),
+  validateRequest(updateUserActiveSchema),
+  asyncHandler(updateUserActiveHandler),
+)
+router.get(
+  '/super/escalations',
+  asyncHandler(requireRole('SUPER_ADMIN')),
+  validateRequest(listEscalationsSchema),
+  asyncHandler(listEscalationsHandler),
+)
+router.post(
+  '/super/escalations/:id/manual',
+  asyncHandler(requireRole('SUPER_ADMIN')),
+  validateRequest(manualEscalateSchema),
+  asyncHandler(manualEscalateHandler),
+)
+router.patch(
+  '/super/requests/:id/override',
+  asyncHandler(requireRole('SUPER_ADMIN')),
+  validateRequest(overrideRequestSchema),
+  asyncHandler(overrideRequestHandler),
+)
+router.patch(
+  '/super/requests/:id/reassign',
+  asyncHandler(requireRole('SUPER_ADMIN')),
+  validateRequest(reassignRequestSchema),
+  asyncHandler(reassignRequestHandler),
+)
+router.get('/super/reports', asyncHandler(requireRole('SUPER_ADMIN')), asyncHandler(superAdminReportsHandler))
 
 export default router

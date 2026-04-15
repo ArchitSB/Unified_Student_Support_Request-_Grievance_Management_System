@@ -73,7 +73,7 @@ export const registerStudent = async ({
   return makeAuthResponse(user)
 }
 
-export const registerAdmin = async ({ name, email, password, department, adminSignupKey }) => {
+export const registerAdmin = async ({ name, email, password, department, designation, adminSignupKey }) => {
   if (!env.ADMIN_SIGNUP_KEY) {
     throw new ApiError(500, 'Admin signup is disabled. Missing ADMIN_SIGNUP_KEY configuration')
   }
@@ -102,6 +102,7 @@ export const registerAdmin = async ({ name, email, password, department, adminSi
     userId: createdUser._id,
     employeeId: generatedEmployeeId,
     department,
+    designation,
   })
 
   const user = await User.findById(createdUser._id, userProjection)

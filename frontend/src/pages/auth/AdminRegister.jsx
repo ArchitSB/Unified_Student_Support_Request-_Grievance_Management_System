@@ -4,6 +4,8 @@ import { Button, Input } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { authApi } from '../../lib/api'
 
+const adminDesignations = ['Professor', 'Teacher', 'Class Coordinator', 'Other']
+
 function AdminRegister() {
   const navigate = useNavigate()
   const { login } = useAuth()
@@ -11,6 +13,7 @@ function AdminRegister() {
     name: '',
     email: '',
     department: '',
+    designation: 'Other',
     password: '',
     adminSignupKey: '',
   })
@@ -81,6 +84,22 @@ function AdminRegister() {
               value={formData.department}
               onChange={handleChange}
             />
+            <label className="grid gap-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+              Designation
+              <select
+                name="designation"
+                required
+                value={formData.designation}
+                onChange={handleChange}
+                className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-500/30"
+              >
+                {adminDesignations.map((designation) => (
+                  <option key={designation} value={designation}>
+                    {designation}
+                  </option>
+                ))}
+              </select>
+            </label>
             <Input
               label="Password"
               name="password"
