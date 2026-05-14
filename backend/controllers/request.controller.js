@@ -11,6 +11,15 @@ import {
   updateOwnRequest,
   updateRequestStatus,
 } from '../services/request.service.js'
+import {
+  createRequestComment,
+  getRequestWorkspace,
+  getUserNotifications,
+  readNotification,
+  reopenRequestByStudent,
+  submitResolutionFeedback,
+  uploadRequestAttachment,
+} from '../services/ticketWorkspace.service.js'
 import { sendSuccess } from '../utils/apiResponse.js'
 
 export const createRequestHandler = async (req, res) => {
@@ -116,6 +125,100 @@ export const requestActionHandler = async (req, res) => {
 
   return sendSuccess(res, {
     message: 'Request action processed successfully',
+    data,
+  })
+}
+
+export const getRequestWorkspaceHandler = async (req, res) => {
+  const data = await getRequestWorkspace({
+    requestId: req.validated.params.id,
+    actor: req.user,
+  })
+
+  return sendSuccess(res, {
+    message: 'Fetched request workspace',
+    data,
+  })
+}
+
+export const createRequestCommentHandler = async (req, res) => {
+  const data = await createRequestComment({
+    requestId: req.validated.params.id,
+    actor: req.user,
+    message: req.validated.body.message,
+    visibility: req.validated.body.visibility,
+    parentCommentId: req.validated.body.parentCommentId,
+  })
+
+  return sendSuccess(res, {
+    statusCode: 201,
+    message: 'Comment created successfully',
+    data,
+  })
+}
+
+export const uploadRequestAttachmentHandler = async (req, res) => {
+  const data = await uploadRequestAttachment({
+    requestId: req.validated.params.id,
+    actor: req.user,
+    file: req.file,
+  })
+
+  return sendSuccess(res, {
+    statusCode: 201,
+    message: 'Attachment uploaded successfully',
+    data,
+  })
+}
+
+export const reopenRequestHandler = async (req, res) => {
+  const data = await reopenRequestByStudent({
+    requestId: req.validated.params.id,
+    actor: req.user,
+    message: req.validated.body.message,
+  })
+
+  return sendSuccess(res, {
+    message: 'Request reopened successfully',
+    data,
+  })
+}
+
+export const submitFeedbackHandler = async (req, res) => {
+  const data = await submitResolutionFeedback({
+    requestId: req.validated.params.id,
+    actor: req.user,
+    rating: req.validated.body.rating,
+    review: req.validated.body.review,
+  })
+
+  return sendSuccess(res, {
+    message: 'Feedback submitted successfully',
+    data,
+  })
+}
+
+export const listNotificationsHandler = async (req, res) => {
+  const data = await getUserNotifications({
+    actor: req.user,
+    limit: req.validated.query.limit,
+  })
+
+  return sendSuccess(res, {
+    message: 'Fetched notifications',
+    data: data.items,
+    meta: { unreadCount: data.unreadCount },
+  })
+}
+
+export const readNotificationHandler = async (req, res) => {
+  const data = await readNotification({
+    actor: req.user,
+    notificationId: req.validated.params.id,
+  })
+
+  return sendSuccess(res, {
+    message: 'Notification marked as read',
     data,
   })
 }

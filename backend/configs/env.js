@@ -14,11 +14,13 @@ export const env = {
   MONGODB_URI: process.env.MONGODB_URI || '',
   JWT_SECRET: process.env.JWT_SECRET || '',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || '',
+  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
   ADMIN_SIGNUP_KEY: process.env.ADMIN_SIGNUP_KEY || '',
   CORS_ORIGINS: parseOrigins(process.env.CORS_ORIGINS || 'http://localhost:5173'),
 }
 
-const requiredKeys = ['MONGODB_URI', 'JWT_SECRET']
+const requiredKeys = ['MONGODB_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET']
 const missingKeys = requiredKeys.filter((key) => !env[key])
 
 if (missingKeys.length > 0) {

@@ -1,4 +1,12 @@
-import { loginAdmin, loginUser, registerAdmin, registerStudent } from '../services/auth.service.js'
+import {
+  getRegistrationBootstrap,
+  loginAdmin,
+  loginUser,
+  logoutSession,
+  refreshSession,
+  registerAdmin,
+  registerStudent,
+} from '../services/auth.service.js'
 import { sendSuccess } from '../utils/apiResponse.js'
 
 export const register = async (req, res) => {
@@ -47,5 +55,32 @@ export const getMe = async (req, res) => {
   return sendSuccess(res, {
     message: 'Current user profile',
     data: { user: req.user },
+  })
+}
+
+export const getRegistrationBootstrapHandler = async (_req, res) => {
+  const data = await getRegistrationBootstrap()
+
+  return sendSuccess(res, {
+    message: 'Fetched registration bootstrap data',
+    data,
+  })
+}
+
+export const refreshSessionHandler = async (req, res) => {
+  const data = await refreshSession(req.validated.body.refreshToken)
+
+  return sendSuccess(res, {
+    message: 'Session refreshed successfully',
+    data,
+  })
+}
+
+export const logoutHandler = async (req, res) => {
+  const data = await logoutSession(req.validated.body.refreshToken)
+
+  return sendSuccess(res, {
+    message: 'Logged out successfully',
+    data,
   })
 }

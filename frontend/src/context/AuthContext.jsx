@@ -1,35 +1,44 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { authApi } from '../lib/api'
+import {
+  authApi,
+  clearAuthSession,
+  getAuthToken,
+  getRefreshToken,
+  getStoredUser,
+  persistAuthSession,
+} from '../lib/api'
 
 const AuthContext = createContext(null)
 
-const readStoredUser = () => {
-  const rawUser = localStorage.getItem('auth_user')
-  if (!rawUser) return null
-
-  try {
-    return JSON.parse(rawUser)
-  } catch {
-    return null
-  }
-}
-
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('auth_token'))
-  const [user, setUser] = useState(readStoredUser)
-  const [isAuthLoading, setIsAuthLoading] = useState(() => Boolean(localStorage.getItem('auth_token')))
+  const [token, setToken] = useState(() => getAuthToken())
+  const [user, setUser] = useState(getStoredUser)
+  const [isAuthLoading, setIsAuthLoading] = useState(() => Boolean(getAuthToken() || getRefreshToken()))
 
-  const login = ({ token: nextToken, user: nextUser }) => {
-    localStorage.setItem('auth_token', nextToken)
-    localStorage.setItem('auth_user', JSON.stringify(nextUser))
-    setToken(nextToken)
+  const login = ({ accessToken, refreshToken, token: fallbackToken, user: nextUser }) => {
+    persistAuthSession({
+      accessToken: accessToken || fallbackToken,
+      refreshToken,
+      user: nextUser,
+    })
+    setToken(accessToken || fallbackToken || null)
     setUser(nextUser)
+    setIsAuthLoading(false)
   }
 
-  const logout = () => {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('auth_user')
+  const logout = async () => {
+    const refreshToken = getRefreshToken()
+
+    if (refreshToken) {
+      try {
+        await authApi.logout({ refreshToken })
+      } catch {
+        // Local cleanup remains authoritative for the client.
+      }
+    }
+
+    clearAuthSession()
     setToken(null)
     setUser(null)
     setIsAuthLoading(false)
@@ -39,7 +48,7 @@ export function AuthProvider({ children }) {
     let isMounted = true
 
     const syncProfile = async () => {
-      if (!token) {
+      if (!token && !getRefreshToken()) {
         if (isMounted) {
           setIsAuthLoading(false)
         }
@@ -56,7 +65,12 @@ export function AuthProvider({ children }) {
           return
         }
 
-        localStorage.setItem('auth_user', JSON.stringify(nextUser))
+        persistAuthSession({
+          accessToken: getAuthToken(),
+          refreshToken: getRefreshToken(),
+          user: nextUser,
+        })
+        setToken(getAuthToken())
         setUser(nextUser)
       } catch {
         if (isMounted) {
@@ -80,7 +94,7 @@ export function AuthProvider({ children }) {
     () => ({
       token,
       user,
-      isAuthenticated: Boolean(token),
+      isAuthenticated: Boolean(token && user),
       isAuthLoading,
       login,
       logout,

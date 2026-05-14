@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 
 import { connectDB } from '../configs/db.js'
 import { AdminProfile } from '../models/AdminProfile.js'
+import { Department } from '../models/Department.js'
 import { User } from '../models/User.js'
 
 const seedAdmin = async () => {
@@ -12,6 +13,12 @@ const seedAdmin = async () => {
 
   await connectDB()
 
+  const resolvedDepartment = await Department.findOne({
+    $or: [{ name: department }, { code: department.toUpperCase() }],
+  })
+    .select('_id name')
+    .lean()
+
   const existingAdmin = await User.findOne({ email })
 
   if (existingAdmin) {
@@ -19,7 +26,7 @@ const seedAdmin = async () => {
       { userId: existingAdmin._id },
       {
         $set: {
-          department,
+          department: resolvedDepartment?.name || department,
           designation: 'Other',
           isSuperAdmin: false,
         },
@@ -38,13 +45,14 @@ const seedAdmin = async () => {
     email,
     passwordHash,
     role: 'ADMIN',
-    department,
+    department: resolvedDepartment?.name || department,
+    departmentId: resolvedDepartment?._id || null,
     isActive: true,
   })
 
   await AdminProfile.create({
     userId: admin._id,
-    department,
+    department: resolvedDepartment?.name || department,
     designation: 'Other',
     isSuperAdmin: false,
   })

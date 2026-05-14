@@ -1,5 +1,8 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import useRealtimeNotifications from '../../hooks/useRealtimeNotifications'
+import { superAdminApi } from '../../lib/api'
+import NotificationCenter from '../notifications/NotificationCenter'
 
 const navLinks = [
   { to: '/super-admin/dashboard', label: 'Overview' },
@@ -15,7 +18,17 @@ const navLinks = [
 function SuperAdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, token, logout } = useAuth()
+  const {
+    notifications,
+    unreadCount,
+    isNotificationCenterOpen,
+    setIsNotificationCenterOpen,
+    markAsRead,
+  } = useRealtimeNotifications({
+    api: superAdminApi,
+    token,
+  })
 
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -66,6 +79,24 @@ function SuperAdminLayout() {
               <div className="hidden rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300 md:block">
                 {user?.name || 'Super Admin'}
               </div>
+              <NotificationCenter
+                notifications={notifications}
+                unreadCount={unreadCount}
+                isOpen={isNotificationCenterOpen}
+                onToggle={() => setIsNotificationCenterOpen((prev) => !prev)}
+                onMarkRead={markAsRead}
+                onSelectNotification={(notification) => {
+                  if (!notification.isRead) {
+                    markAsRead(notification._id)
+                  }
+                  setIsNotificationCenterOpen(false)
+                  navigate(
+                    notification.requestId
+                      ? `/super-admin/requests?requestId=${notification.requestId}`
+                      : '/super-admin/requests',
+                  )
+                }}
+              />
               <button
                 type="button"
                 onClick={() => navigate('/admin/dashboard')}

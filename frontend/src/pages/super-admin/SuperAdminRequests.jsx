@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Button, Card, Modal, StatusBadge, Table, ToastStack } from '../../components/ui'
+import TicketDetailsDrawer from '../../components/tickets/TicketDetailsDrawer'
 import { useToast } from '../../hooks/useToast'
 import { adminApi, superAdminApi } from '../../lib/api'
 
 function SuperAdminRequests() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [requests, setRequests] = useState([])
   const [admins, setAdmins] = useState([])
   const [filters, setFilters] = useState({ status: '', priority: '', type: '', search: '' })
@@ -13,9 +16,11 @@ function SuperAdminRequests() {
   const [overrideRemark, setOverrideRemark] = useState('')
   const [isReassignOpen, setIsReassignOpen] = useState(false)
   const [isOverrideOpen, setIsOverrideOpen] = useState(false)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const { toasts, pushToast, removeToast } = useToast()
+  const requestIdFromQuery = searchParams.get('requestId')
 
   const load = useCallback(async (activeFilters = filters) => {
     const [requestsResponse, adminsResponse] = await Promise.all([
@@ -57,6 +62,12 @@ function SuperAdminRequests() {
     }
   }, [load])
 
+  useEffect(() => {
+    if (!requestIdFromQuery) return
+    setSelectedRequestId(requestIdFromQuery)
+    setIsDetailsOpen(true)
+  }, [requestIdFromQuery])
+
   const rows = useMemo(
     () =>
       requests.map((item) => ({
@@ -83,6 +94,16 @@ function SuperAdminRequests() {
       title: 'Actions',
       render: (_value, row) => (
         <div className="flex gap-2">
+          <Button
+            className="h-9 px-3 text-xs"
+            variant="ghost"
+            onClick={() => {
+              setSelectedRequestId(row.id)
+              setIsDetailsOpen(true)
+            }}
+          >
+            Details
+          </Button>
           <Button
             className="h-9 px-3 text-xs"
             variant="secondary"
@@ -154,6 +175,15 @@ function SuperAdminRequests() {
       setError(err.message || 'Failed to override request')
       pushToast({ type: 'error', title: 'Override failed', message: err.message || 'Failed to override request.' })
     }
+  }
+
+  const handleDetailsClose = () => {
+    setIsDetailsOpen(false)
+    if (!requestIdFromQuery) return
+
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('requestId')
+    setSearchParams(nextParams, { replace: true })
   }
 
   return (
@@ -229,6 +259,15 @@ function SuperAdminRequests() {
           </div>
         </div>
       </Modal>
+
+      <TicketDetailsDrawer
+        isOpen={isDetailsOpen}
+        requestId={selectedRequestId}
+        onClose={handleDetailsClose}
+        api={superAdminApi}
+        userRole="SUPER_ADMIN"
+        onRequestMutated={() => load(filters)}
+      />
     </div>
   )
 }

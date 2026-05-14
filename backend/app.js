@@ -2,6 +2,7 @@ import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
 import morgan from 'morgan'
+import path from 'path'
 
 import { env } from './configs/env.js'
 import { authRateLimiter } from './middelwares/rateLimiter.js'
@@ -30,6 +31,7 @@ app.use(
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true }))
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'))
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ success: true, message: 'Server is healthy' })

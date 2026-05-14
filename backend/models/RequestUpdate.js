@@ -17,7 +17,18 @@ const requestUpdateSchema = new mongoose.Schema(
     action: {
       type: String,
       required: true,
-      enum: ['CREATED', 'UPDATED', 'ASSIGNED', 'STATUS_CHANGED'],
+      enum: [
+        'CREATED',
+        'UPDATED',
+        'ASSIGNED',
+        'STATUS_CHANGED',
+        'COMMENT_ADDED',
+        'ATTACHMENT_UPLOADED',
+        'PRIORITY_CHANGED',
+        'ESCALATED',
+        'REOPENED',
+        'FEEDBACK_SUBMITTED',
+      ],
     },
     meta: {
       type: mongoose.Schema.Types.Mixed,

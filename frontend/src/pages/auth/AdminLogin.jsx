@@ -26,7 +26,7 @@ function AdminLogin() {
       const response = await authApi.adminLogin(formData)
       const authPayload = response?.data
 
-      if (!authPayload?.token || !authPayload?.user) {
+      if (!(authPayload?.accessToken || authPayload?.token) || !authPayload?.refreshToken || !authPayload?.user) {
         throw new Error('Invalid admin login response from server')
       }
 

@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Button, Card, Modal, StatusBadge, Table, ToastStack } from '../../components/ui'
+import TicketDetailsDrawer from '../../components/tickets/TicketDetailsDrawer'
 import { useToast } from '../../hooks/useToast'
 import { adminApi } from '../../lib/api'
 
 const ACTIONS = ['APPROVE', 'REJECT', 'FORWARD']
 
 const adminColumns = [
+  { key: 'ticketId', title: 'Ticket ID' },
   { key: 'studentName', title: 'Student' },
   { key: 'title', title: 'Request' },
   { key: 'departmentName', title: 'Department' },
@@ -17,6 +20,7 @@ const adminColumns = [
 ]
 
 function AdminRequests() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isActionModalOpen, setIsActionModalOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -28,13 +32,9 @@ function AdminRequests() {
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState({ status: '', priority: '', type: '', search: '' })
+  const [filters, setFilters] = useState({ status: '', priority: '', type: '', search: '', sortBy: 'newest' })
   const { toasts, pushToast, removeToast } = useToast()
-
-  const selectedRequest = useMemo(
-    () => requests.find((item) => item._id === selectedRequestId) || null,
-    [requests, selectedRequestId],
-  )
+  const requestIdFromQuery = searchParams.get('requestId')
 
   const loadRequests = useCallback(async (activeFilters) => {
     const response = await adminApi.listRequests({
@@ -44,6 +44,7 @@ function AdminRequests() {
       priority: activeFilters.priority || undefined,
       type: activeFilters.type || undefined,
       search: activeFilters.search || undefined,
+      sortBy: activeFilters.sortBy || undefined,
     })
 
     setRequests(response?.data || [])
@@ -65,6 +66,7 @@ function AdminRequests() {
             priority: filters.priority || undefined,
             type: filters.type || undefined,
             search: filters.search || undefined,
+            sortBy: filters.sortBy || undefined,
           }),
           adminApi.listAdmins(),
         ])
@@ -90,10 +92,17 @@ function AdminRequests() {
     }
   }, [filters])
 
+  useEffect(() => {
+    if (!requestIdFromQuery) return
+    setSelectedRequestId(requestIdFromQuery)
+    setIsDetailsOpen(true)
+  }, [requestIdFromQuery])
+
   const rows = useMemo(
     () =>
       requests.map((item) => ({
         id: item._id,
+        ticketId: item.ticketId || 'Pending',
         studentName: item.studentId?.name || 'Unknown',
         title: item.title,
         departmentName: item.departmentId?.name || 'General',
@@ -247,6 +256,15 @@ function AdminRequests() {
     }
   }
 
+  const handleDetailsClose = () => {
+    setIsDetailsOpen(false)
+    if (!requestIdFromQuery) return
+
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('requestId')
+    setSearchParams(nextParams, { replace: true })
+  }
+
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onClose={removeToast} />
@@ -267,7 +285,7 @@ function AdminRequests() {
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
       <Card title="Request Filters" subtitle="Filter by status, urgency, and request category">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <select
             name="status"
             value={filters.status}
@@ -277,8 +295,10 @@ function AdminRequests() {
             <option value="">All Status</option>
             <option value="PENDING">Pending</option>
             <option value="IN_PROGRESS">In Progress</option>
+            <option value="ESCALATED">Escalated</option>
             <option value="RESOLVED">Resolved</option>
             <option value="REJECTED">Rejected</option>
+            <option value="REOPENED">Reopened</option>
           </select>
           <select
             name="priority"
@@ -310,9 +330,21 @@ function AdminRequests() {
             value={filters.search}
             onChange={handleFilterChange}
             type="search"
-            placeholder="Search title or text"
+            placeholder="Search ticket, title, student, category"
             className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-600 dark:bg-slate-900"
           />
+          <select
+            name="sortBy"
+            value={filters.sortBy}
+            onChange={handleFilterChange}
+            className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-600 dark:bg-slate-900"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="highest_priority">Highest Priority</option>
+            <option value="sla_risk">SLA Risk</option>
+            <option value="unresolved">Unresolved</option>
+          </select>
         </div>
       </Card>
 
@@ -386,80 +418,14 @@ function AdminRequests() {
         </div>
       </Modal>
 
-      <aside
-        className={`fixed inset-y-0 right-0 z-60 w-full max-w-xl border-l border-slate-200 bg-white p-5 shadow-xl transition-transform duration-200 ease-out dark:border-slate-700 dark:bg-slate-900 ${isDetailsOpen ? 'translate-x-0' : 'translate-x-full'}`}
-      >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Request Details</h2>
-          <Button variant="secondary" className="h-9 px-3 text-xs" onClick={() => setIsDetailsOpen(false)}>
-            Close
-          </Button>
-        </div>
-
-        {selectedRequest ? (
-          <div className="space-y-5 overflow-y-auto pb-6">
-            <Card title={selectedRequest.title} subtitle={`${selectedRequest.type} • ${selectedRequest.priority}`}>
-              <p className="text-sm text-slate-600 dark:text-slate-300">{selectedRequest.description}</p>
-              <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                <p>
-                  <span className="font-medium">Student:</span> {selectedRequest.studentId?.name || 'Unknown'}
-                </p>
-                <p>
-                  <span className="font-medium">Department:</span> {selectedRequest.departmentId?.name || 'General'}
-                </p>
-                <p>
-                  <span className="font-medium">Status:</span> {selectedRequest.status}
-                </p>
-                <p>
-                  <span className="font-medium">Current Step:</span> {selectedRequest.currentStep || 1}
-                </p>
-              </div>
-            </Card>
-
-            <Card title="Approval Timeline" subtitle="Chronological action history">
-              {selectedRequest.approvalHistory?.length ? (
-                <div className="space-y-3">
-                  {selectedRequest.approvalHistory
-                    .slice()
-                    .reverse()
-                    .map((event, index) => (
-                      <div key={`${event.timestamp || ''}-${index}`} className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                            {(event.actorId && event.actorId.name) || 'System'}
-                          </p>
-                          <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">{event.action}</p>
-                        </div>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Role: {event.role}</p>
-                        {event.remark ? (
-                          <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{event.remark}</p>
-                        ) : null}
-                        {event.timestamp ? (
-                          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                            {new Date(event.timestamp).toLocaleString('en-IN')}
-                          </p>
-                        ) : null}
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500 dark:text-slate-400">No approval actions yet.</p>
-              )}
-            </Card>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 dark:text-slate-400">Select a request to view details.</p>
-        )}
-      </aside>
-
-      {isDetailsOpen ? (
-        <button
-          type="button"
-          className="fixed inset-0 z-50 bg-slate-900/30"
-          onClick={() => setIsDetailsOpen(false)}
-          aria-label="Close request details"
-        />
-      ) : null}
+      <TicketDetailsDrawer
+        isOpen={isDetailsOpen}
+        requestId={selectedRequestId}
+        onClose={handleDetailsClose}
+        api={adminApi}
+        userRole="ADMIN"
+        onRequestMutated={() => loadRequests(filters)}
+      />
     </div>
   )
 }

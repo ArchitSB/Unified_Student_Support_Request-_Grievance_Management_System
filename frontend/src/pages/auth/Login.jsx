@@ -26,7 +26,7 @@ function Login() {
       const response = await authApi.login(formData)
       const authPayload = response?.data
 
-      if (!authPayload?.token || !authPayload?.user) {
+      if (!(authPayload?.accessToken || authPayload?.token) || !authPayload?.refreshToken || !authPayload?.user) {
         throw new Error('Invalid login response from server')
       }
 

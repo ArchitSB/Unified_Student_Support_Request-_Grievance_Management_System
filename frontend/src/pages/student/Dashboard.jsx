@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Button, StatusBadge } from '../../components/ui'
+import TicketDetailsDrawer from '../../components/tickets/TicketDetailsDrawer'
 import { studentApi } from '../../lib/api'
 
 const formatDate = (value) =>
@@ -16,6 +17,8 @@ function Dashboard() {
   const [recentActivity, setRecentActivity] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedRequestId, setSelectedRequestId] = useState('')
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -92,16 +95,21 @@ function Dashboard() {
           ) : (
             <div className="space-y-3">
               {recentActivity.map((item) => (
-                <div
+                <button
+                  type="button"
                   key={item._id}
                   className="flex items-center justify-between rounded-lg border border-slate-200 p-3 dark:border-slate-700"
+                  onClick={() => {
+                    setSelectedRequestId(item._id)
+                    setIsWorkspaceOpen(true)
+                  }}
                 >
                   <div>
                     <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{item.title}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(item.createdAt)}</p>
                   </div>
                   <StatusBadge status={item.status} />
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -118,6 +126,14 @@ function Dashboard() {
           </div>
         </Card>
       </section>
+
+      <TicketDetailsDrawer
+        isOpen={isWorkspaceOpen}
+        requestId={selectedRequestId}
+        onClose={() => setIsWorkspaceOpen(false)}
+        api={studentApi}
+        userRole="STUDENT"
+      />
     </div>
   )
 }

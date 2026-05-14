@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { adminApi, studentApi } from '../../lib/api'
+import useRealtimeNotifications from '../../hooks/useRealtimeNotifications'
 import { getDefaultPathForRole, isAdminRole, normalizeRole, ROLE } from '../../lib/roles'
+import NotificationCenter from '../notifications/NotificationCenter'
 import Sidebar from './Sidebar'
 import Navbar from './Navbar'
 
@@ -19,8 +22,19 @@ function MainLayout() {
   const [theme, setTheme] = useState(getInitialTheme)
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, token, logout } = useAuth()
   const userRole = normalizeRole(user?.role)
+  const notificationApi = isAdminRole(userRole) ? adminApi : studentApi
+  const {
+    notifications,
+    unreadCount,
+    isNotificationCenterOpen,
+    setIsNotificationCenterOpen,
+    markAsRead,
+  } = useRealtimeNotifications({
+    api: notificationApi,
+    token,
+  })
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -49,11 +63,27 @@ function MainLayout() {
           theme={theme}
           user={user}
           onLogout={logout}
-          onNotificationsClick={() => navigate(isAdminRole(userRole) ? '/admin/requests' : '/my-requests')}
           onProfileClick={() => navigate(getDefaultPathForRole(userRole))}
           onThemeToggle={handleThemeToggle}
           onMenuClick={() => setIsSidebarOpen((prev) => !prev)}
           roleLabel={userRole === ROLE.STUDENT ? 'Student Workspace' : 'Operations Workspace'}
+          notificationSlot={
+            <NotificationCenter
+              notifications={notifications}
+              unreadCount={unreadCount}
+              isOpen={isNotificationCenterOpen}
+              onToggle={() => setIsNotificationCenterOpen((prev) => !prev)}
+              onMarkRead={markAsRead}
+              onSelectNotification={(notification) => {
+                if (!notification.isRead) {
+                  markAsRead(notification._id)
+                }
+                setIsNotificationCenterOpen(false)
+                const targetPath = isAdminRole(userRole) ? '/admin/requests' : '/my-requests'
+                navigate(notification.requestId ? `${targetPath}?requestId=${notification.requestId}` : targetPath)
+              }}
+            />
+          }
         />
         <main className="flex-1 p-4 md:p-6">
           <Outlet />

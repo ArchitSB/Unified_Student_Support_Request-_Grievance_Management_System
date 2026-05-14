@@ -6,6 +6,10 @@ import { WorkflowConfig } from '../models/WorkflowConfig.js'
 import { User } from '../models/User.js'
 import { ApiError } from '../utils/ApiError.js'
 import { applyRoleScopeFilter, assertRequestAccess } from './requestAccess.service.js'
+import { logAuditEvent } from './audit.service.js'
+import { createNotifications } from './notification.service.js'
+import { emitToRequestRoom } from './realtime.service.js'
+import { ensureOperationalFields, markResolvedOnRequest, maybeAutoEscalateRequest, resolveSlaConfig } from './sla.service.js'
 import {
   canRoleActOnStep,
   normalizeUserRole,
@@ -45,6 +49,12 @@ export const createRequest = async (payload, studentId) => {
     taggedTeacherId: payload.taggedTeacherId,
     departmentId,
   })
+  const slaConfig = await resolveSlaConfig({
+    requestType: payload.type,
+    priority: payload.priority,
+    departmentId,
+  })
+  const now = new Date()
 
   const request = await Request.create({
     ...payload,
@@ -53,33 +63,92 @@ export const createRequest = async (payload, studentId) => {
     workflowId: workflow._id,
     currentStep: assignment.currentStep,
     assignedTo: assignment.assignedTo,
-    status: 'IN_PROGRESS',
+    status: 'PENDING',
+    category: payload.category || payload.type,
+    subcategory: payload.subcategory || null,
+    slaTargetHours: slaConfig.targetHours,
+    slaStartedAt: now,
+    slaDueAt: new Date(now.getTime() + slaConfig.targetHours * 60 * 60 * 1000),
+    nextEscalationAt: new Date(now.getTime() + slaConfig.escalationHours * 60 * 60 * 1000),
   })
+  await ensureOperationalFields(request)
 
   await logRequestUpdate({
     requestId: request._id,
     actorId: studentId,
     action: 'CREATED',
-    meta: { title: request.title, status: request.status },
+    meta: { title: request.title, status: request.status, ticketId: request.ticketId },
+  })
+
+  await Promise.all([
+    createNotifications([
+      assignment.assignedTo
+        ? {
+            userId: assignment.assignedTo,
+            requestId: request._id,
+            type: 'REQUEST_ASSIGNED',
+            title: 'New ticket assigned',
+            message: `${request.ticketId || 'A ticket'} has been assigned to your queue.`,
+            metadata: { priority: request.priority, status: request.status },
+          }
+        : null,
+      {
+        userId: studentId,
+        requestId: request._id,
+        type: 'REQUEST_ASSIGNED',
+        title: 'Ticket submitted successfully',
+        message: `${request.ticketId || 'Your request'} is now in the support workflow.`,
+        metadata: { priority: request.priority, status: request.status },
+      },
+    ]),
+    logAuditEvent({
+      actorId: studentId,
+      targetType: 'REQUEST',
+      targetId: request._id,
+      action: 'REQUEST_CREATED',
+      summary: `Created ticket ${request.ticketId || request._id}.`,
+      metadata: { type: request.type, priority: request.priority },
+    }),
+  ])
+
+  emitToRequestRoom(request._id, 'request:updated', {
+    requestId: String(request._id),
+    status: request.status,
+    ticketId: request.ticketId,
   })
 
   return request
 }
 
-export const listMyRequests = async ({ page, limit, status, type, search }, studentId) => {
+export const listMyRequests = async ({ page, limit, status, type, search, sortBy }, studentId) => {
   const filter = { studentId }
   if (status) filter.status = status
   if (type) filter.type = type
-  if (search) filter.$text = { $search: search }
+  if (search) {
+    filter.$or = [
+      { ticketId: { $regex: search, $options: 'i' } },
+      { title: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+    ]
+  }
 
   const skip = (page - 1) * limit
+  const sortMap = {
+    newest: { createdAt: -1 },
+    oldest: { createdAt: 1 },
+    highest_priority: { priority: -1, createdAt: -1 },
+    unresolved: { status: 1, createdAt: -1 },
+    sla_risk: { nextEscalationAt: 1, createdAt: -1 },
+  }
+  const sort = sortMap[sortBy] || sortMap.newest
 
   const [items, total] = await Promise.all([
     Request.find(filter)
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit)
       .populate('assignedTo', 'name email role')
+      .populate('departmentId', 'name code')
       .lean(),
     Request.countDocuments(filter),
   ])
@@ -93,6 +162,7 @@ export const listMyRequests = async ({ page, limit, status, type, search }, stud
 export const getRequestForStudent = async (requestId, studentId) => {
   const request = await Request.findById(requestId)
     .populate('assignedTo', 'name email role')
+    .populate('departmentId', 'name code')
     .lean()
 
   if (!request) {
@@ -137,21 +207,41 @@ export const updateOwnRequest = async (requestId, studentId, updates) => {
 }
 
 export const listAdminRequests = async (query, actor) => {
-  const { page, limit, status, type, priority, assignee, search } = query
+  const { page, limit, status, type, priority, assignee, search, departmentId, stage, sortBy } = query
   const filter = {}
 
   if (status) filter.status = status
   if (type) filter.type = type
   if (priority) filter.priority = priority
   if (assignee) filter.assignedTo = assignee
-  if (search) filter.$text = { $search: search }
+  if (departmentId) filter.departmentId = departmentId
+  if (stage) filter.currentStep = stage
+  if (search) {
+    const matchingStudents = await User.find({ name: { $regex: search, $options: 'i' } }).select('_id').lean()
+    filter.$or = [
+      { ticketId: { $regex: search, $options: 'i' } },
+      { title: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+      { category: { $regex: search, $options: 'i' } },
+      { subcategory: { $regex: search, $options: 'i' } },
+      ...(matchingStudents.length > 0 ? [{ studentId: { $in: matchingStudents.map((student) => student._id) } }] : []),
+    ]
+  }
 
   const scopedFilter = applyRoleScopeFilter({ baseFilter: filter, user: actor })
   const skip = (page - 1) * limit
+  const sortMap = {
+    newest: { createdAt: -1 },
+    oldest: { createdAt: 1 },
+    highest_priority: { priority: -1, createdAt: -1 },
+    sla_risk: { nextEscalationAt: 1, createdAt: -1 },
+    unresolved: { status: 1, createdAt: -1 },
+  }
+  const sort = sortMap[sortBy] || sortMap.newest
 
   const [items, total] = await Promise.all([
     Request.find(scopedFilter)
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit)
       .populate('studentId', 'name email')
@@ -173,17 +263,48 @@ export const updateRequestStatus = async (requestId, actor, status) => {
     throw new ApiError(404, 'Request not found')
   }
 
+  await ensureOperationalFields(request)
   assertRequestAccess(request, actor)
 
   const oldStatus = request.status
   request.status = status
+  if (status === 'RESOLVED') {
+    markResolvedOnRequest(request)
+  }
   await request.save()
 
-  await logRequestUpdate({
+  const updated = await logRequestUpdate({
     requestId: request._id,
     actorId: actor._id,
     action: 'STATUS_CHANGED',
     meta: { oldStatus, newStatus: status },
+  })
+
+  await Promise.all([
+    createNotifications([
+      {
+        userId: request.studentId,
+        requestId: request._id,
+        type: status === 'RESOLVED' ? 'WORKFLOW_COMPLETED' : status === 'REJECTED' ? 'REQUEST_REJECTED' : 'REQUEST_ASSIGNED',
+        title: `Ticket ${status.replace('_', ' ').toLowerCase()}`,
+        message: `${request.ticketId || 'Your ticket'} is now ${status.replace('_', ' ').toLowerCase()}.`,
+        metadata: { status },
+      },
+    ]),
+    logAuditEvent({
+      actorId: actor._id,
+      targetType: 'REQUEST',
+      targetId: request._id,
+      action: 'REQUEST_STATUS_UPDATED',
+      summary: `Updated ${request.ticketId || request._id} from ${oldStatus} to ${status}.`,
+      metadata: { oldStatus, newStatus: status },
+    }),
+  ])
+
+  emitToRequestRoom(request._id, 'request:updated', {
+    requestId: String(request._id),
+    status,
+    timelineId: String(updated?._id || ''),
   })
 
   return request
@@ -203,6 +324,7 @@ export const assignRequest = async (requestId, actor, assignedTo) => {
     throw new ApiError(404, 'Request not found')
   }
 
+  await ensureOperationalFields(request)
   assertRequestAccess(request, actor)
 
   if (!assignee || !['TEACHER', 'HOD', 'DEPARTMENT_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(assignee.role)) {
@@ -217,19 +339,67 @@ export const assignRequest = async (requestId, actor, assignedTo) => {
   if (request.status === 'PENDING') {
     request.status = 'IN_PROGRESS'
   }
+  if (request.status === 'ESCALATED') {
+    request.status = 'IN_PROGRESS'
+  }
+  request.nextEscalationAt = request.slaTargetHours
+    ? new Date(Date.now() + Math.max(6, Math.floor(request.slaTargetHours / 2)) * 60 * 60 * 1000)
+    : request.nextEscalationAt
   await request.save()
 
-  await logRequestUpdate({
+  const updated = await logRequestUpdate({
     requestId: request._id,
     actorId: actor._id,
     action: 'ASSIGNED',
     meta: { assignedTo: assignee._id },
   })
 
+  await Promise.all([
+    createNotifications([
+      {
+        userId: assignee._id,
+        requestId: request._id,
+        type: 'REQUEST_ASSIGNED',
+        title: 'New ticket assigned',
+        message: `${request.ticketId || 'A ticket'} has been assigned to you.`,
+        metadata: { status: request.status },
+      },
+      {
+        userId: request.studentId,
+        requestId: request._id,
+        type: 'REQUEST_ASSIGNED',
+        title: 'Handler assigned',
+        message: `${assignee.name} is now handling ${request.ticketId || 'your ticket'}.`,
+        metadata: { assigneeId: assignee._id },
+      },
+    ]),
+    logAuditEvent({
+      actorId: actor._id,
+      targetType: 'REQUEST',
+      targetId: request._id,
+      action: 'REQUEST_ASSIGNED',
+      summary: `Assigned ${request.ticketId || request._id} to ${assignee.name}.`,
+      metadata: { assigneeId: assignee._id, assigneeRole: assignee.role },
+    }),
+  ])
+
+  emitToRequestRoom(request._id, 'request:updated', {
+    requestId: String(request._id),
+    assignedTo: String(assignee._id),
+    status: request.status,
+    timelineId: String(updated?._id || ''),
+  })
+
   return request
 }
 
 export const getRequestUpdates = async (requestId) => {
+  const request = await Request.findById(requestId)
+  if (request) {
+    await ensureOperationalFields(request)
+    await maybeAutoEscalateRequest({ request })
+  }
+
   const updates = await RequestUpdate.find({ requestId })
     .sort({ createdAt: -1 })
     .populate('actorId', 'name email role')
@@ -240,7 +410,7 @@ export const getRequestUpdates = async (requestId) => {
 
 export const getAdminDashboardStats = async (actor) => {
   const scopedOpenFilter = applyRoleScopeFilter({
-    baseFilter: { status: { $in: ['PENDING', 'IN_PROGRESS'] } },
+    baseFilter: { status: { $in: ['PENDING', 'IN_PROGRESS', 'ESCALATED', 'REOPENED'] } },
     user: actor,
   })
 
@@ -258,7 +428,7 @@ export const getAdminDashboardStats = async (actor) => {
 
   const scopedUrgentFilter = applyRoleScopeFilter({
     baseFilter: {
-      status: { $in: ['PENDING', 'IN_PROGRESS'] },
+      status: { $in: ['PENDING', 'IN_PROGRESS', 'ESCALATED', 'REOPENED'] },
       priority: { $in: ['HIGH', 'URGENT'] },
     },
     user: actor,
@@ -307,6 +477,7 @@ export const performRequestAction = async ({ requestId, actor, action, remark = 
     throw new ApiError(404, 'Request not found')
   }
 
+  await ensureOperationalFields(request)
   assertRequestAccess(request, actor)
 
   const workflow = request.workflowId
@@ -329,6 +500,7 @@ export const performRequestAction = async ({ requestId, actor, action, remark = 
 
   if (normalizedAction === 'REJECT') {
     request.status = 'REJECTED'
+    request.nextEscalationAt = null
     request.approvalHistory.push({
       actorId: actor._id,
       role: normalizeUserRole(actor.role),
@@ -339,11 +511,38 @@ export const performRequestAction = async ({ requestId, actor, action, remark = 
 
     await request.save()
 
-    await logRequestUpdate({
+    const timeline = await logRequestUpdate({
       requestId: request._id,
       actorId: actor._id,
       action: 'STATUS_CHANGED',
       meta: { oldStatus, newStatus: 'REJECTED', workflowAction: 'REJECT' },
+    })
+
+    await Promise.all([
+      createNotifications([
+        {
+          userId: request.studentId,
+          requestId: request._id,
+          type: 'REQUEST_REJECTED',
+          title: 'Ticket rejected',
+          message: `${request.ticketId || 'Your ticket'} was rejected.${remark ? ` Note: ${remark}` : ''}`,
+          metadata: { status: 'REJECTED' },
+        },
+      ]),
+      logAuditEvent({
+        actorId: actor._id,
+        targetType: 'REQUEST',
+        targetId: request._id,
+        action: 'REQUEST_REJECTED',
+        summary: `Rejected ${request.ticketId || request._id}.`,
+        metadata: { remark },
+      }),
+    ])
+
+    emitToRequestRoom(request._id, 'request:updated', {
+      requestId: String(request._id),
+      status: request.status,
+      timelineId: String(timeline?._id || ''),
     })
 
     return request
@@ -367,13 +566,41 @@ export const performRequestAction = async ({ requestId, actor, action, remark = 
   if (!nextStep) {
     request.status = 'RESOLVED'
     request.assignedTo = null
+    markResolvedOnRequest(request)
     await request.save()
 
-    await logRequestUpdate({
+    const timeline = await logRequestUpdate({
       requestId: request._id,
       actorId: actor._id,
       action: 'STATUS_CHANGED',
       meta: { oldStatus, newStatus: 'RESOLVED', workflowAction: normalizedAction },
+    })
+
+    await Promise.all([
+      createNotifications([
+        {
+          userId: request.studentId,
+          requestId: request._id,
+          type: 'WORKFLOW_COMPLETED',
+          title: 'Ticket resolved',
+          message: `${request.ticketId || 'Your ticket'} has been resolved.`,
+          metadata: { status: 'RESOLVED' },
+        },
+      ]),
+      logAuditEvent({
+        actorId: actor._id,
+        targetType: 'REQUEST',
+        targetId: request._id,
+        action: 'REQUEST_RESOLVED',
+        summary: `Resolved ${request.ticketId || request._id}.`,
+        metadata: { workflowAction: normalizedAction, remark },
+      }),
+    ])
+
+    emitToRequestRoom(request._id, 'request:updated', {
+      requestId: String(request._id),
+      status: request.status,
+      timelineId: String(timeline?._id || ''),
     })
 
     return request
@@ -392,9 +619,12 @@ export const performRequestAction = async ({ requestId, actor, action, remark = 
   request.currentStep = nextStepOrder
   request.assignedTo = nextAssignment.assignedTo
   request.status = 'IN_PROGRESS'
+  request.nextEscalationAt = request.slaTargetHours
+    ? new Date(Date.now() + Math.max(6, Math.floor(request.slaTargetHours / 2)) * 60 * 60 * 1000)
+    : request.nextEscalationAt
   await request.save()
 
-  await logRequestUpdate({
+  const timeline = await logRequestUpdate({
     requestId: request._id,
     actorId: actor._id,
     action: 'ASSIGNED',
@@ -404,6 +634,42 @@ export const performRequestAction = async ({ requestId, actor, action, remark = 
       nextRole: nextAssignment.role,
       assignedTo: nextAssignment.assignedTo,
     },
+  })
+
+  await Promise.all([
+    createNotifications([
+      {
+        userId: nextAssignment.assignedTo,
+        requestId: request._id,
+        type: 'REQUEST_ASSIGNED',
+        title: 'Workflow action moved ticket to your queue',
+        message: `${request.ticketId || 'A ticket'} advanced to your workflow stage.`,
+        metadata: { nextStep: nextStepOrder, role: nextAssignment.role },
+      },
+      {
+        userId: request.studentId,
+        requestId: request._id,
+        type: 'REQUEST_APPROVED',
+        title: 'Ticket progressed',
+        message: `${request.ticketId || 'Your ticket'} moved to the next workflow stage.`,
+        metadata: { nextStep: nextStepOrder, role: nextAssignment.role },
+      },
+    ]),
+    logAuditEvent({
+      actorId: actor._id,
+      targetType: 'REQUEST',
+      targetId: request._id,
+      action: 'REQUEST_WORKFLOW_ACTION',
+      summary: `${normalizedAction} processed for ${request.ticketId || request._id}.`,
+      metadata: { nextStep: nextStepOrder, nextAssigneeId: nextAssignment.assignedTo, remark },
+    }),
+  ])
+
+  emitToRequestRoom(request._id, 'request:updated', {
+    requestId: String(request._id),
+    status: request.status,
+    currentStep: request.currentStep,
+    timelineId: String(timeline?._id || ''),
   })
 
   return request

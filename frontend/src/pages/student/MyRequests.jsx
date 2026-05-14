@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Card, StatusBadge, Table } from '../../components/ui'
+import TicketDetailsDrawer from '../../components/tickets/TicketDetailsDrawer'
 import { studentApi } from '../../lib/api'
 
 const requestColumns = [
+  { key: 'ticketId', title: 'Ticket ID' },
   { key: 'title', title: 'Title' },
   { key: 'type', title: 'Type' },
   { key: 'status', title: 'Status', render: (value) => <StatusBadge status={value} /> },
@@ -19,11 +21,29 @@ const formatDate = (value) =>
 
 function MyRequests() {
   const navigate = useNavigate()
-  const [filters, setFilters] = useState({ status: '', type: '', search: '' })
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [filters, setFilters] = useState({ status: '', type: '', search: '', sortBy: 'newest' })
   const [requests, setRequests] = useState([])
   const [meta, setMeta] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedRequestId, setSelectedRequestId] = useState('')
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false)
+  const requestIdFromQuery = searchParams.get('requestId')
+
+  const loadRequests = async (activeFilters = filters) => {
+    const response = await studentApi.listMyRequests({
+      page: 1,
+      limit: 50,
+      status: activeFilters.status || undefined,
+      type: activeFilters.type || undefined,
+      search: activeFilters.search || undefined,
+      sortBy: activeFilters.sortBy || undefined,
+    })
+
+    setRequests(response?.data || [])
+    setMeta(response?.meta || null)
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -39,8 +59,8 @@ function MyRequests() {
           status: filters.status || undefined,
           type: filters.type || undefined,
           search: filters.search || undefined,
+          sortBy: filters.sortBy || undefined,
         })
-
         if (!isMounted) return
 
         setRequests(response?.data || [])
@@ -62,10 +82,26 @@ function MyRequests() {
     }
   }, [filters])
 
+  useEffect(() => {
+    if (!requestIdFromQuery) return
+    setSelectedRequestId(requestIdFromQuery)
+    setIsWorkspaceOpen(true)
+  }, [requestIdFromQuery])
+
+  const handleWorkspaceClose = () => {
+    setIsWorkspaceOpen(false)
+    if (!requestIdFromQuery) return
+
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('requestId')
+    setSearchParams(nextParams, { replace: true })
+  }
+
   const tableData = useMemo(
     () =>
       requests.map((item) => ({
         id: item._id,
+        ticketId: item.ticketId || 'Pending',
         title: item.title,
         type: item.type,
         status: item.status,
@@ -89,7 +125,7 @@ function MyRequests() {
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
       <Card title="Filter Requests" subtitle="Refine by status, category, or date range">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <select
             name="status"
             value={filters.status}
@@ -99,8 +135,10 @@ function MyRequests() {
             <option value="">All Status</option>
             <option value="PENDING">Pending</option>
             <option value="IN_PROGRESS">In Progress</option>
+            <option value="ESCALATED">Escalated</option>
             <option value="RESOLVED">Resolved</option>
             <option value="REJECTED">Rejected</option>
+            <option value="REOPENED">Reopened</option>
           </select>
           <select
             name="type"
@@ -128,10 +166,54 @@ function MyRequests() {
             placeholder="Search request title"
             className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm dark:border-slate-600 dark:bg-slate-900"
           />
+
+          <select
+            name="sortBy"
+            value={filters.sortBy}
+            onChange={handleFilterChange}
+            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm dark:border-slate-600 dark:bg-slate-900"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="highest_priority">Highest Priority</option>
+            <option value="sla_risk">SLA Risk</option>
+            <option value="unresolved">Unresolved</option>
+          </select>
         </div>
       </Card>
 
-      <Table columns={requestColumns} data={tableData} isLoading={isLoading} />
+      <Table
+        columns={[
+          ...requestColumns,
+          {
+            key: 'actions',
+            title: 'Actions',
+            render: (_value, row) => (
+              <Button
+                className="h-9 px-3 text-xs"
+                variant="secondary"
+                onClick={() => {
+                  setSelectedRequestId(row.id)
+                  setIsWorkspaceOpen(true)
+                }}
+              >
+                Open Workspace
+              </Button>
+            ),
+          },
+        ]}
+        data={tableData}
+        isLoading={isLoading}
+      />
+
+      <TicketDetailsDrawer
+        isOpen={isWorkspaceOpen}
+        requestId={selectedRequestId}
+        onClose={handleWorkspaceClose}
+        api={studentApi}
+        userRole="STUDENT"
+        onRequestMutated={() => loadRequests()}
+      />
     </div>
   )
 }

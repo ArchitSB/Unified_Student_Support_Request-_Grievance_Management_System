@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 const objectIdRegex = /^[a-f\d]{24}$/i
 
-const requestStatusEnum = z.enum(['PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'])
+const requestStatusEnum = z.enum(['PENDING', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'REJECTED', 'REOPENED'])
 const userRoleEnum = z.enum(['STUDENT', 'TEACHER', 'HOD', 'DEPARTMENT_ADMIN', 'SUPER_ADMIN', 'ADMIN'])
 
 export const listSystemUsersSchema = z.object({

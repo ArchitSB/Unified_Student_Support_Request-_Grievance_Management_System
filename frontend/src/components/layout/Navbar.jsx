@@ -12,10 +12,10 @@ function Navbar({
   user,
   roleLabel = 'Workspace',
   onLogout,
-  onNotificationsClick,
   onProfileClick,
   onThemeToggle,
   onMenuClick,
+  notificationSlot = null,
 }) {
   const userInitials = getInitials(user?.name)
 
@@ -45,15 +45,7 @@ function Navbar({
             Requests and workflow updates
           </div>
 
-          <button
-            type="button"
-            onClick={onNotificationsClick}
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-            aria-label="Open relevant requests"
-          >
-            🔔
-            <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-rose-500" />
-          </button>
+          {notificationSlot}
 
           <button
             type="button"

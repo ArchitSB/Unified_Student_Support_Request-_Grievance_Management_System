@@ -1,5 +1,9 @@
 import mongoose from 'mongoose'
 
+const requestStatusEnum = ['PENDING', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'REJECTED', 'REOPENED']
+const requestPriorityEnum = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
+const requestTypeEnum = ['ACADEMIC', 'FINANCE', 'HOSTEL', 'INFRASTRUCTURE', 'OTHER']
+
 const approvalHistorySchema = new mongoose.Schema(
   {
     actorId: {
@@ -15,7 +19,7 @@ const approvalHistorySchema = new mongoose.Schema(
     action: {
       type: String,
       required: true,
-      enum: ['APPROVED', 'REJECTED', 'FORWARDED'],
+      enum: ['APPROVED', 'REJECTED', 'FORWARDED', 'ESCALATED', 'REOPENED'],
     },
     remark: {
       type: String,
@@ -33,6 +37,12 @@ const approvalHistorySchema = new mongoose.Schema(
 
 const requestSchema = new mongoose.Schema(
   {
+    ticketId: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true,
+    },
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -55,19 +65,32 @@ const requestSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['ACADEMIC', 'FINANCE', 'HOSTEL', 'INFRASTRUCTURE', 'OTHER'],
+      enum: requestTypeEnum,
       default: 'OTHER',
       index: true,
     },
+    category: {
+      type: String,
+      trim: true,
+      default: null,
+      maxlength: 120,
+      index: true,
+    },
+    subcategory: {
+      type: String,
+      trim: true,
+      default: null,
+      maxlength: 120,
+    },
     priority: {
       type: String,
-      enum: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'],
+      enum: requestPriorityEnum,
       default: 'MEDIUM',
       index: true,
     },
     status: {
       type: String,
-      enum: ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'],
+      enum: requestStatusEnum,
       default: 'PENDING',
       index: true,
     },
@@ -108,13 +131,68 @@ const requestSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    slaTargetHours: {
+      type: Number,
+      default: null,
+      min: 1,
+    },
+    slaStartedAt: {
+      type: Date,
+      default: null,
+    },
+    slaDueAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    nextEscalationAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    lastEscalatedAt: {
+      type: Date,
+      default: null,
+    },
+    escalationCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    resolutionFeedback: {
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+        default: null,
+      },
+      review: {
+        type: String,
+        trim: true,
+        default: '',
+        maxlength: 1000,
+      },
+      submittedAt: {
+        type: Date,
+        default: null,
+      },
+    },
+    reopenedCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
   },
 )
 
-requestSchema.index({ title: 'text', description: 'text' })
+requestSchema.index({ ticketId: 'text', title: 'text', description: 'text', category: 'text', subcategory: 'text' })
 requestSchema.index({ status: 1, type: 1, createdAt: -1 })
 requestSchema.index({ departmentId: 1, currentStep: 1, status: 1 })
 
