@@ -12,6 +12,13 @@ Current stage:
 - Department and workflow configuration modules are active
 - Frontend is redesigned and fully connected to upgraded backend contracts
 
+## Screenshots
+
+![UGMS Screenshot 1](frontend/public/ugms1.png)
+![UGMS Screenshot 2](frontend/public/ugms2.png)
+![UGMS Screenshot 3](frontend/public/ugms3.png)
+![UGMS Screenshot 4](frontend/public/ugms4.png)
+
 ## 1. Current Functional Scope
 
 ### Frontend
@@ -365,4 +372,3 @@ Response contracts:
 - Success: { success:true, message, data, meta }
 - Error: { success:false, message, errors }
 ```
-
