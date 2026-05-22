@@ -19,6 +19,105 @@ Current stage:
 ![UGMS Screenshot 3](frontend/public/ugms3.png)
 ![UGMS Screenshot 4](frontend/public/ugms4.png)
 
+## Architecture Diagrams
+
+### A. System Context (Frontend + Backend + Realtime + Data)
+
+```mermaid
+flowchart LR
+  U[Users<br/>Student, Teacher, HOD, Department Admin, Super Admin] --> FE[Frontend SPA<br/>React + Vite]
+
+  FE -->|REST API /api/v1| BE[Backend API<br/>Node.js + Express]
+  FE -->|Socket.IO| RT[Realtime Gateway<br/>Socket.IO Server]
+
+  BE -->|Mongoose ODM| DB[(MongoDB)]
+  BE -->|Static file serving| FS[(Local uploads/)]
+  RT -->|User and Request rooms| FE
+
+  BE -. emits events .-> RT
+  BE --> AU[Audit + Notifications + SLA + Workflow Services]
+  AU --> DB
+```
+
+### B. Backend Component Architecture
+
+```mermaid
+flowchart TD
+  APP[app.js + server.js] --> MW[Middlewares<br/>auth, validateRequest, rateLimiter, errorHandler, upload]
+  MW --> ROUTES[Routes Layer<br/>auth.routes, request.routes, admin.routes]
+  ROUTES --> CTRL[Controllers Layer]
+  CTRL --> SVC[Services Layer]
+
+  SVC --> AUTH[auth.service]
+  SVC --> REQ[request.service]
+  SVC --> WS[ticketWorkspace.service]
+  SVC --> WF[workflow.service]
+  SVC --> SLA[sla.service]
+  SVC --> SA[superAdmin.service]
+  SVC --> NOTIF[notification.service]
+  SVC --> AUDIT[audit.service]
+  SVC --> ACCESS[requestAccess.service]
+  SVC --> RTS[realtime.service]
+
+  AUTH --> MODELS[(Mongoose Models)]
+  REQ --> MODELS
+  WS --> MODELS
+  WF --> MODELS
+  SLA --> MODELS
+  SA --> MODELS
+  NOTIF --> MODELS
+  AUDIT --> MODELS
+  ACCESS --> MODELS
+```
+
+### C. Request Lifecycle and Workflow Progression
+
+```mermaid
+stateDiagram-v2
+  [*] --> PENDING: Student creates request
+  PENDING --> IN_PROGRESS: Assigned / first handler starts
+  IN_PROGRESS --> IN_PROGRESS: FORWARD within workflow
+  IN_PROGRESS --> RESOLVED: Final APPROVE
+  IN_PROGRESS --> REJECTED: REJECT
+  PENDING --> ESCALATED: SLA auto-escalation
+  IN_PROGRESS --> ESCALATED: SLA auto-escalation or manual escalation
+  ESCALATED --> IN_PROGRESS: Reassigned to next step actor
+  RESOLVED --> REOPENED: Student reopens
+  REOPENED --> IN_PROGRESS: Re-enters workflow
+  REJECTED --> [*]
+  RESOLVED --> [*]
+```
+
+### D. Core Data Model Relationships
+
+```mermaid
+erDiagram
+  USER ||--o| STUDENT_PROFILE : has
+  USER ||--o| ADMIN_PROFILE : has
+  USER ||--o| SUPER_ADMIN_PROFILE : has
+  DEPARTMENT ||--o{ USER : contains
+  DEPARTMENT ||--o{ WORKFLOW_CONFIG : scoped_for
+  DEPARTMENT ||--o{ SLA_CONFIG : scoped_for
+
+  USER ||--o{ REQUEST : creates_as_student
+  USER ||--o{ REQUEST : assigned_to
+  WORKFLOW_CONFIG ||--o{ REQUEST : governs
+  DEPARTMENT ||--o{ REQUEST : belongs_to
+
+  REQUEST ||--o{ REQUEST_UPDATE : timeline_events
+  REQUEST ||--o{ REQUEST_COMMENT : discussion
+  REQUEST ||--o{ ATTACHMENT : files
+  REQUEST ||--o{ ESCALATION_HISTORY : escalations
+  REQUEST ||--o{ NOTIFICATION : notifies_about
+
+  USER ||--o{ REQUEST_UPDATE : acts_on
+  USER ||--o{ REQUEST_COMMENT : writes
+  USER ||--o{ ATTACHMENT : uploads
+  USER ||--o{ NOTIFICATION : receives
+  USER ||--o{ AUDIT_LOG : actor
+  USER ||--o{ AUTH_SESSION : owns
+```
+
 ## 1. Current Functional Scope
 
 ### Frontend
